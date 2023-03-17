@@ -10,7 +10,7 @@ camera_matrix, dist_coeffs = calib.camera_matrix, calib.dist_coeffs
 # Define example parameters
 frame_width = 640
 frame_height = 480
-camera_position = Vector3(0, 1, 1)
+camera_position = Vector3(0, 0.75, 0)
 towards_direction = Vector3(0, 0, 1)
 
 
@@ -21,7 +21,7 @@ def on_mouse_event(event, x, y, flags, param):
         print(f"Intersection point: x={intersection.x}, y={intersection.y}, z={intersection.z}")
 
 # Open camera
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(1)
 cv2.namedWindow("Camera Frame")
 cv2.setMouseCallback("Camera Frame", on_mouse_event)
 
@@ -29,7 +29,8 @@ while True:
     ret, frame = cap.read()
     if not ret:
         break
-
+    
+    frame = calib.undistort(frame, crop=False)
     cv2.imshow("Camera Frame", frame)
     key = cv2.waitKey(1) & 0xFF
 

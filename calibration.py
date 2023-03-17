@@ -73,7 +73,7 @@ class Calib:
             self.camera_matrix, 
             self.dist_coeffs, 
             (w, h), 
-            1
+            0
         )
         
         # undistort
@@ -104,8 +104,8 @@ class Calib:
 
 if __name__ == "__main__":
 
-    calib = Calib(image_dir="./im/*.jpg", chessboard_size=(8, 12))
+    calib = Calib(filename="calib_data.json", image_dir="./7_12/*.jpg", chessboard_size=(7, 12))
     calib.save(filename="calib_data.json")
-    calib.undistort("./im/WIN_20221005_18_23_46_Pro.jpg", "im.jpg")
+    calib.undistort("./7_12/WIN_20230317_19_15_40_Pro.jpg", "im.jpg", crop=False)
     calib.load(filename="calib_data.json")
     print(calib)
