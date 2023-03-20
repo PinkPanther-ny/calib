@@ -1,6 +1,7 @@
 import numpy as np
 import cv2
 
+
 class Vector3:
     def __init__(self, x, y, z):
         self.x = x
@@ -29,7 +30,9 @@ class Vector3:
     def normalized(self):
         length = np.sqrt(self.x**2 + self.y**2 + self.z**2)
         return Vector3(self.x / length, self.y / length, self.z / length)
-
+    
+    def __repr__(self) -> str:
+        return f"(x={self.x:.2f}, y={self.y:.2f}, z={self.z:.2f})"
 
 class Ray:
     def __init__(self, origin, direction):
@@ -56,7 +59,18 @@ def calculate_fov(camera_matrix):
     fov_y = 2 * np.arctan(h / (2 * fy)) * 180 / np.pi
     return fov_x, fov_y
 
-def pixel_to_world_coordinate(pixel, frame_width, frame_height, camera_matrix, camera_position, towards_direction, ground_plane=Plane(Vector3(0, 0, 0), Vector3(0, 1, 0))):
+def pixel_to_world_coordinate(pixel, 
+                              frame_width, frame_height, 
+                              camera_matrix, dist_coeffs, 
+                              camera_position, towards_direction, 
+                              ground_plane=Plane(Vector3(0, 0, 0), Vector3(0, 1, 0)), 
+                              pixel_is_distort=True):
+    if pixel_is_distort:
+        # Undistort the pixel coordinates
+        distorted_pixels = np.array([[pixel]], dtype=np.float32)
+        undistorted_pixels = cv2.undistortPoints(distorted_pixels, camera_matrix, dist_coeffs, P=camera_matrix)
+        pixel = tuple(undistorted_pixels[0][0])
+
     fov_x, fov_y = calculate_fov(camera_matrix)
     aspect_ratio = frame_width / frame_height
 
@@ -81,7 +95,6 @@ def pixel_to_world_coordinate(pixel, frame_width, frame_height, camera_matrix, c
         return intersection
 
 
-
 if __name__ == "__main__":
     from calibration import Calib
     
@@ -94,17 +107,23 @@ if __name__ == "__main__":
     frame_height = 480
     camera_position = Vector3(0, 0.75, 0)
     towards_direction = Vector3(0, 0, 1)
-    
+
+    text_to_display = ""
+    cursor_position = (0, 0)
     def on_mouse_event(event, x, y, flags, param):
-        pixel = (x, y)
-        intersection = pixel_to_world_coordinate(pixel, 
+        global text_to_display, cursor_position
+        cursor_position = (x, y)
+        intersection = pixel_to_world_coordinate(cursor_position, 
                                                     frame_width, 
                                                     frame_height, 
                                                     camera_matrix, 
+                                                    dist_coeffs,
                                                     camera_position, 
-                                                    towards_direction)
+                                                    towards_direction,
+                                                    pixel_is_distort=True)
         
-        print(f"Intersection point: x={intersection.x:.2f}, y={intersection.y:.2f}, z={intersection.z:.2f}")
+        text_to_display = str(intersection)
+        print(f"Intersection point: {intersection}")
 
     # Open camera
     cap = cv2.VideoCapture(1)
@@ -115,7 +134,8 @@ if __name__ == "__main__":
         ret, frame = cap.read()
         if not ret:
             break
-        
+        # Draw the text on the frame
+        cv2.putText(frame, text_to_display, cursor_position, cv2.FONT_HERSHEY_SIMPLEX, 0.3, (128, 255, 128), 1)
         cv2.imshow("Camera Frame", frame)
 
         if cv2.waitKey(1) & 0xFF == ord("q"):
