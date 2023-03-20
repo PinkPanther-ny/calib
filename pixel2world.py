@@ -80,3 +80,46 @@ def pixel_to_world_coordinate(pixel, frame_width, frame_height, camera_matrix, c
     else:
         return intersection
 
+
+
+if __name__ == "__main__":
+    from calibration import Calib
+    
+    # Load calibration data
+    calib = Calib(filename="calib_data.json")
+    camera_matrix, dist_coeffs = calib.camera_matrix, calib.dist_coeffs
+
+    # Define example parameters
+    frame_width = 640
+    frame_height = 480
+    camera_position = Vector3(0, 0.75, 0)
+    towards_direction = Vector3(0, 0, 1)
+    
+    def on_mouse_event(event, x, y, flags, param):
+        pixel = (x, y)
+        intersection = pixel_to_world_coordinate(pixel, 
+                                                    frame_width, 
+                                                    frame_height, 
+                                                    camera_matrix, 
+                                                    camera_position, 
+                                                    towards_direction)
+        
+        print(f"Intersection point: x={intersection.x:.2f}, y={intersection.y:.2f}, z={intersection.z:.2f}")
+
+    # Open camera
+    cap = cv2.VideoCapture(1)
+    cv2.namedWindow("Camera Frame")
+    cv2.setMouseCallback("Camera Frame", on_mouse_event)
+
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
+        
+        cv2.imshow("Camera Frame", frame)
+
+        if cv2.waitKey(1) & 0xFF == ord("q"):
+            break
+
+    cap.release()
+    cv2.destroyAllWindows()
