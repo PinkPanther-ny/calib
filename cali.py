@@ -7,7 +7,7 @@ import glob
 from tqdm import tqdm
 
 # Extracting path of individual image stored in a given directory
-images = glob.glob('./images_s/*.jpg')
+images = glob.glob('./images/*.jpg')
 
 # Defining the dimensions of checkerboard
 CHECKERBOARD = (8,12)
