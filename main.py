@@ -30,6 +30,9 @@ def main(config: Dict) -> None:
     )
 
     cap = cv2.VideoCapture(config["camera_index"])
+    # Set the camera resolution to 1920x1080
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, config["frame_width"])
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, config["frame_height"])
     cv2.namedWindow("Camera Frame")
     cv2.setMouseCallback("Camera Frame", mouse_event_handler.on_mouse_event)
 
