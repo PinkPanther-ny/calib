@@ -31,11 +31,18 @@ class Calib:
         # Read a set of calibration images
         calibration_images = glob.glob(image_dir)  # Replace with your images path
 
+        first_image = True
         for fname in calibration_images:
             img = cv2.imread(fname)
             gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-            # Find the chessboard corners
+            if first_image:
+                self.width, self.height = gray.shape[::-1]
+                first_image = False
+            else:
+                if gray.shape[::-1] != (self.width, self.height):
+                    raise ValueError("All images must have the same dimensions for calibration.")
+
             ret, corners = cv2.findChessboardCorners(gray, chessboard_size, None)
 
             # If found, add object points and image points (after refining them)
@@ -55,6 +62,8 @@ class Calib:
         Save the calibration data to a JSON file.
         """
         calibration_data = {
+            "width": self.width,
+            "height": self.height,
             "camera_matrix": self.camera_matrix.tolist(),
             "dist_coeffs": self.dist_coeffs.tolist(),
         }
@@ -69,10 +78,14 @@ class Calib:
         with open(filename, "r") as f:
             calibration_data = json.load(f)
 
+        self.width = calibration_data["width"]
+        self.height = calibration_data["height"]
         self.camera_matrix = np.array(calibration_data["camera_matrix"])
         self.dist_coeffs = np.array(calibration_data["dist_coeffs"])
 
         return {
+            "width": self.width,
+            "height": self.height,
             "camera_matrix": self.camera_matrix,
             "dist_coeffs": self.dist_coeffs,
         }
@@ -120,16 +133,25 @@ class Calib:
         """
         Represent the Calib object as a string.
         """
-        return str({
-            "camera_matrix": self.camera_matrix,
-            "dist_coeffs": self.dist_coeffs,
-        })
+        return json.dumps({
+            "width": self.width,
+            "height": self.height,
+            "camera_matrix": self.camera_matrix.tolist(),
+            "dist_coeffs": self.dist_coeffs.tolist(),
+        }, indent=4)
 
 
 if __name__ == "__main__":
-
-    calib = Calib(image_dir="./images/*.jpg", chessboard_size=(7, 12))
-    calib.save(filename="calib_data.json")
-    calib.undistort("./images/WIN_20230317_19_15_37_Pro.jpg", "calibrated.jpg", crop=False)
-    calib.load(filename="calib_data.json")
-    print(calib)
+    cam1 = False
+    if cam1:
+        calib = Calib(image_dir="fisheye/*.jpg", chessboard_size=(7, 12))
+        calib.save(filename="configs/calib_fish.json")
+        calib.undistort("fisheye/WIN_20230323_14_10_45_Pro.jpg", "calibrated.jpg", crop=False)
+        calib.load(filename="configs/calib_fish.json")
+        print(calib)
+    else:
+        calib = Calib(image_dir="images/*.jpg", chessboard_size=(7, 12))
+        calib.save(filename="configs/calib_data.json")
+        calib.undistort("images/WIN_20230317_19_15_37_Pro.jpg", "calibrated.jpg", crop=False)
+        calib.load(filename="configs/calib_data.json")
+        print(calib)

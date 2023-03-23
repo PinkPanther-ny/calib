@@ -1,6 +1,4 @@
 calib_filename: "configs/calib_fish.json"
 camera_index: 1
-frame_width: 1920
-frame_height: 1080
-camera_position: [0, 0.43, 0]
+camera_position: [0, 0.43, 0.05]
 towards_direction: [0, 0, 1]

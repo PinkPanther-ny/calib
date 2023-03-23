@@ -19,24 +19,25 @@ def main(config: Dict) -> None:
     """
     calib = Calib(filename=config["calib_filename"])
     camera_matrix, dist_coeffs = calib.camera_matrix, calib.dist_coeffs
+    frame_width, frame_height = calib.width, calib.height
 
     camera_position = config["camera_position"]
     towards_direction = config["towards_direction"]
 
     mouse_event_handler = MouseEventHandler(
-        config["frame_width"], config["frame_height"],
+        frame_width, frame_height,
         camera_matrix, dist_coeffs,
         camera_position, towards_direction
     )
 
-    cap = cv2.VideoCapture(config["camera_index"])
-    # Set the camera resolution to 1920x1080
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, config["frame_width"])
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, config["frame_height"])
+    cap = cv2.VideoCapture(config["camera_index"], cv2.CAP_DSHOW)
+    # Set camera resolution
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, frame_width)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, frame_height)
     cv2.namedWindow("Camera Frame")
     cv2.setMouseCallback("Camera Frame", mouse_event_handler.on_mouse_event)
 
-    while True:
+    while cv2.getWindowProperty("Camera Frame", cv2.WND_PROP_VISIBLE) >= 1:
         ret, frame = cap.read()
         if not ret:
             break
