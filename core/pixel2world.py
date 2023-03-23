@@ -30,11 +30,7 @@ class CoordinateConverter:
         self.pixel_is_distort = pixel_is_distort
 
         t0 = time.time()
-        self.world_coordinate_map = np.empty((frame_height, frame_width, 3), dtype=np.float32)
-        for i in range(frame_height):
-            for j in range(frame_width):
-                world_coord = self._pixel_to_world_coordinate((j, i))
-                self.world_coordinate_map[i, j] = [world_coord.x, world_coord.y, world_coord.z]
+        self._create_world_coordinate_map()
         print(f"Coordinate map ({frame_width}, {frame_height}) computed in {time.time() - t0} secs.")
 
     def _calculate_fov(self) -> Tuple[float, float]:
@@ -86,3 +82,10 @@ class CoordinateConverter:
             return Vector3(float('inf'), float('inf'), float('inf'))
         else:
             return intersection
+
+    def _create_world_coordinate_map(self):
+        self.world_coordinate_map = np.empty((self.frame_height, self.frame_width, 3), dtype=np.float32)
+        for i in range(self.frame_height):
+            for j in range(self.frame_width):
+                world_coord = self._pixel_to_world_coordinate((j, i))
+                self.world_coordinate_map[i, j] = [world_coord.x, world_coord.y, world_coord.z]
