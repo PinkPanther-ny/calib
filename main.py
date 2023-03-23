@@ -53,7 +53,7 @@ def main(config: Dict) -> None:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Load configuration from a YAML file.")
-    parser.add_argument('--config_path', type=str, default="configs/cam_deepblue.yaml", help='Path to the config file')
+    parser.add_argument('-c', '--config_path', type=str, default="configs/cam_deepblue.yaml", help='Path to the config file')
     args = parser.parse_args()
 
     config = load_config(args.config_path)
