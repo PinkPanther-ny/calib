@@ -1,4 +1,5 @@
 import cv2
+import time
 import numpy as np
 from core.geometry import Plane, Ray, Vector3
 from typing import Tuple, List
@@ -28,11 +29,13 @@ class CoordinateConverter:
         
         self.pixel_is_distort = pixel_is_distort
 
+        t0 = time.time()
         self.world_coordinate_map = np.empty((frame_height, frame_width, 3), dtype=np.float32)
         for i in range(frame_height):
             for j in range(frame_width):
                 world_coord = self._pixel_to_world_coordinate((j, i))
                 self.world_coordinate_map[i, j] = [world_coord.x, world_coord.y, world_coord.z]
+        print(f"Coordinate map ({frame_width}, {frame_height}) computed in {time.time() - t0} secs.")
 
     def _calculate_fov(self) -> Tuple[float, float]:
         """
