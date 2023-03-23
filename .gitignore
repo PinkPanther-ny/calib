@@ -1,5 +1,4 @@
 *.jpg
 __pycache__
-*.json
 *.npy
 deprecated
