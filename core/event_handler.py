@@ -18,7 +18,7 @@ class MouseEventHandler:
         Initialize the MouseEventHandler class.
         """
         self.coordinate_converter = CoordinateConverter(
-            frame_width, frame_height, camera_matrix, dist_coeffs, camera_position, towards_direction
+            frame_width, frame_height, camera_matrix, dist_coeffs, camera_position, towards_direction, pixel_is_distort=True
         )
         self.text_to_display = ""
         self.cursor_position = (0, 0)
@@ -31,7 +31,7 @@ class MouseEventHandler:
         """
         self.cursor_position = (x, y)
         intersection = self.coordinate_converter.pixel_to_world_coordinate(
-            self.cursor_position, pixel_is_distort=True
+            self.cursor_position
         )
 
         self.text_to_display = str(intersection)

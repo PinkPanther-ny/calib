@@ -13,6 +13,7 @@ class CoordinateConverter:
         dist_coeffs: np.ndarray,
         camera_position: List[float],
         towards_direction: List[float],
+        pixel_is_distort: bool = True
     ):
         """
         Initialize the CoordinateConverter class.
@@ -24,6 +25,14 @@ class CoordinateConverter:
         self.camera_position = Vector3(*camera_position)
         self.towards_direction = Vector3(*towards_direction)
         self.ground_plane = Plane(Vector3(0, 0, 0), Vector3(0, 1, 0))
+        
+        self.pixel_is_distort = pixel_is_distort
+
+        self.world_coordinate_map = np.empty((frame_height, frame_width, 3), dtype=np.float32)
+        for i in range(frame_height):
+            for j in range(frame_width):
+                world_coord = self._pixel_to_world_coordinate((j, i))
+                self.world_coordinate_map[i, j] = [world_coord.x, world_coord.y, world_coord.z]
 
     def _calculate_fov(self) -> Tuple[float, float]:
         """
@@ -35,13 +44,20 @@ class CoordinateConverter:
         fov_y = 2 * np.arctan(h / (2 * fy)) * 180 / np.pi
         return fov_x, fov_y
 
-    def pixel_to_world_coordinate(
-        self, pixel: Tuple[float, float], pixel_is_distort: bool = True
+    def pixel_to_world_coordinate(self, pixel: Tuple[float, float]) -> Vector3:
+        """
+        Convert a pixel coordinate to a world coordinate using the precomputed map.
+        """
+        x, y = pixel
+        return Vector3(*self.world_coordinate_map[y, x])
+
+    def _pixel_to_world_coordinate(
+        self, pixel: Tuple[float, float]
     ) -> Vector3:
         """
         Convert a pixel coordinate to a world coordinate.
         """
-        if pixel_is_distort:
+        if self.pixel_is_distort:
             distorted_pixels = np.array([[pixel]], dtype=np.float32)
             undistorted_pixels = cv2.undistortPoints(distorted_pixels, self.camera_matrix, self.dist_coeffs, P=self.camera_matrix)
             pixel = tuple(undistorted_pixels[0][0])
