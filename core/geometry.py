@@ -33,7 +33,10 @@ class Vector3:
     def normalized(self):
         length = np.sqrt(self.x**2 + self.y**2 + self.z**2)
         return Vector3(self.x / length, self.y / length, self.z / length)
-    
+
+    def to_array(self):
+        return np.array([self.x, self.y, self.z])
+
     def __repr__(self) -> str:
         return f"(x={self.x:.2f}, y={self.y:.2f}, z={self.z:.2f})"
 
@@ -63,3 +66,13 @@ class Plane:
                 intersection = ray.origin + ray.direction * t
                 return intersection
         return None
+
+    def intersect_many(self, ray_origin: np.ndarray, ray_directions: np.ndarray) -> np.ndarray:
+        normal_array = self.normal.to_array()  # Convert the normal vector to a numpy array
+        t = np.dot(self.center.to_array() - ray_origin, normal_array) / np.dot(ray_directions, normal_array)  # Update this line
+
+        intersections = ray_origin + t[..., np.newaxis] * ray_directions
+        intersections[t <= 0] = [float('inf'), float('inf'), float('inf')]  # Replace intersections with [inf, inf, inf] when t is not positive
+
+        return intersections
+
