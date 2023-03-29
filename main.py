@@ -35,6 +35,8 @@ def main(config: Dict) -> None:
         camera_matrix, dist_coeffs,
         camera_position, towards_direction
     )
+    grid_image = renderer.undistort_image
+    dis_grid_image = renderer.distorted_image
     
     cap = cv2.VideoCapture(config["camera_index"], cv2.CAP_DSHOW)
     # Set camera resolution
@@ -48,7 +50,7 @@ def main(config: Dict) -> None:
         if not ret:
             break
         mouse_event_handler.display_text_on_frame(frame)
-        cv2.imshow("Camera Frame", renderer.combine(frame))
+        cv2.imshow("Camera Frame", renderer.combine(dis_grid_image, frame))
 
         if cv2.waitKey(1) & 0xFF == ord("q"):
             break

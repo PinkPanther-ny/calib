@@ -61,14 +61,12 @@ class Renderer:
         # Capture the frame from OpenGL
         raw_data = glReadPixels(0, 0, self.frame_width, self.frame_height, GL_RGB, GL_UNSIGNED_BYTE)
         image = Image.frombytes("RGB", (self.frame_width, self.frame_height), raw_data).transpose(Image.Transpose.FLIP_TOP_BOTTOM)
-        np_image = np.array(image)
-
+        self.undistort_image = np.array(image)
         # Distort the image
-        distorted_image = cv2.undistort(np_image, self.camera_matrix, self.dist_coeffs)
-        self.image = distorted_image
+        self.distorted_image = cv2.undistort(self.undistort_image, self.camera_matrix, self.dist_coeffs)
         pygame.quit()
-        return distorted_image
     
-    def combine(self, image, alpha1 = 0.5, alpha2 = 0.5, gamma = 0):
+    @staticmethod
+    def combine(image1, image2, alpha1 = 0.5, alpha2 = 0.5, gamma = 0):
         # gamma value (scalar added to each sum)
-        return cv2.addWeighted(self.image, alpha1, image, alpha2, gamma)
+        return cv2.addWeighted(image1, alpha1, image2, alpha2, gamma)
