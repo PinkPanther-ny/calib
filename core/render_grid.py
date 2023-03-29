@@ -5,7 +5,7 @@ from OpenGL.GLU import *
 from PIL import Image
 import pygame
 from typing import List
-from core import Calib
+
 
 class Renderer:
     def __init__(
@@ -23,6 +23,8 @@ class Renderer:
         self.dist_coeffs = dist_coeffs
         self.camera_position = camera_position
         self.towards_direction = towards_direction
+        
+        self.compute()
 
     def draw_grid(self, size, spacing):
         glBegin(GL_LINES)
@@ -54,7 +56,7 @@ class Renderer:
         # Draw the grid
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         glColor3f(0, 0, 0)
-        self.draw_grid(20, 0.5)
+        self.draw_grid(100, 0.5)
 
         # Capture the frame from OpenGL
         raw_data = glReadPixels(0, 0, self.frame_width, self.frame_height, GL_RGB, GL_UNSIGNED_BYTE)
@@ -63,13 +65,10 @@ class Renderer:
 
         # Distort the image
         distorted_image = cv2.undistort(np_image, self.camera_matrix, self.dist_coeffs)
-
+        self.image = distorted_image
+        pygame.quit()
         return distorted_image
-
-if __name__ == "__main__":
-    calib = Calib(filename="configs/calib_data.json")
-    renderer = Renderer(calib.width, calib.height, calib.camera_matrix, calib.dist_coeffs, [0, 0.5, 0.0], [0, 0, 1])
-    rendered_image = renderer.compute()
-
-    # Save the rendered image
-    cv2.imwrite("rendered_image.png", cv2.cvtColor(rendered_image, cv2.COLOR_RGB2BGR))
+    
+    def combine(self, image, alpha1 = 0.5, alpha2 = 0.5, gamma = 0):
+        # gamma value (scalar added to each sum)
+        return cv2.addWeighted(self.image, alpha1, image, alpha2, gamma)

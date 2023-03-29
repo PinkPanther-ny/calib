@@ -2,7 +2,7 @@ import argparse
 import cv2
 import yaml
 from typing import Dict
-from core import Calib, MouseEventHandler
+from core import Calib, MouseEventHandler, Renderer
 
 
 def load_config(config_path: str) -> Dict:
@@ -30,6 +30,12 @@ def main(config: Dict) -> None:
         camera_position, towards_direction
     )
 
+    renderer = Renderer(
+        frame_width, frame_height, 
+        camera_matrix, dist_coeffs,
+        camera_position, towards_direction
+    )
+    
     cap = cv2.VideoCapture(config["camera_index"], cv2.CAP_DSHOW)
     # Set camera resolution
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, frame_width)
@@ -42,7 +48,7 @@ def main(config: Dict) -> None:
         if not ret:
             break
         mouse_event_handler.display_text_on_frame(frame)
-        cv2.imshow("Camera Frame", frame)
+        cv2.imshow("Camera Frame", renderer.combine(frame))
 
         if cv2.waitKey(1) & 0xFF == ord("q"):
             break
