@@ -2,42 +2,33 @@ import numpy as np
 from typing import Optional
 
 
-class Vector3:
+class Vector3(np.ndarray):
+    def __new__(cls, x: float, y: float, z: float):
+        return np.asarray([x, y, z]).view(cls)
+
     def __init__(self, x: float, y: float, z: float):
-        """
-        Initialize the Vector3 class.
-        """
-        self.x = x
-        self.y = y
-        self.z = z
+        pass
 
-    def __add__(self, other):
-        return Vector3(self.x + other.x, self.y + other.y, self.z + other.z)
+    @property
+    def x(self):
+        return self[0]
 
-    def __sub__(self, other):
-        return Vector3(self.x - other.x, self.y - other.y, self.z - other.z)
+    @property
+    def y(self):
+        return self[1]
 
-    def __mul__(self, scalar):
-        return Vector3(self.x * scalar, self.y * scalar, self.z * scalar)
+    @property
+    def z(self):
+        return self[2]
 
-    def dot(self, other):
-        return self.x * other.x + self.y * other.y + self.z * other.z
-
-    def cross(self, other):
-        return Vector3(
-            self.y * other.z - self.z * other.y,
-            self.z * other.x - self.x * other.z,
-            self.x * other.y - self.y * other.x
-        )
+    @property
+    def length(self):
+        return np.linalg.norm(self.array)
 
     def normalized(self):
-        length = np.sqrt(self.x**2 + self.y**2 + self.z**2)
-        return Vector3(self.x / length, self.y / length, self.z / length)
+        return self / np.linalg.norm(self)
 
-    def to_array(self):
-        return np.array([self.x, self.y, self.z])
-
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         return f"(x={self.x:.2f}, y={self.y:.2f}, z={self.z:.2f})"
 
 class Ray:
@@ -60,19 +51,21 @@ class Plane:
         """
         Calculate the intersection point of the ray and the plane, if it exists.
         """
-        if self.normal.dot(ray.direction) != 0:
-            t = (self.center - ray.origin).dot(self.normal) / ray.direction.dot(self.normal)
-            if t >= 0:
-                intersection = ray.origin + ray.direction * t
-                return intersection
-        return None
+        t = np.dot(self.center - ray.origin, self.normal) / np.dot(ray.direction, self.normal)
+
+        intersections = ray.origin + t[..., np.newaxis] * ray.direction
+        intersections[t <= 0] = [float('inf'), float('inf'), float('inf')]
+
+        return intersections
 
     def intersect_many(self, ray_origin: np.ndarray, ray_directions: np.ndarray) -> np.ndarray:
-        normal_array = self.normal.to_array()  # Convert the normal vector to a numpy array
-        t = np.dot(self.center.to_array() - ray_origin, normal_array) / np.dot(ray_directions, normal_array)  # Update this line
+        """
+        Calculate the intersection points of a set of rays to the plane
+        """
+        t = np.dot(self.center - ray_origin, self.normal) / np.dot(ray_directions, self.normal)
 
         intersections = ray_origin + t[..., np.newaxis] * ray_directions
-        intersections[t <= 0] = [float('inf'), float('inf'), float('inf')]  # Replace intersections with [inf, inf, inf] when t is not positive
+        intersections[t <= 0] = [float('inf'), float('inf'), float('inf')]
 
         return intersections
 

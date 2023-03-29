@@ -68,10 +68,10 @@ class CoordinateConverter:
         y = (1 - 2 * (pixel[1] + 0.5) / self.frame_height) * np.tan(fov_y / 2 * np.pi / 180)
         pixel_world_direction = Vector3(x, y, 1).normalized()
 
-        rotation_axis = self.towards_direction.cross(Vector3(0, 0, 1))
-        rotation_angle = np.arccos(self.towards_direction.dot(Vector3(0, 0, 1)))
-        rotation_matrix = cv2.Rodrigues(rotation_axis.to_array() * rotation_angle)[0]
-        rotated_direction = np.dot(rotation_matrix, pixel_world_direction.to_array())
+        rotation_axis = np.cross(self.towards_direction, Vector3(0, 0, 1))
+        rotation_angle = np.arccos(np.dot(self.towards_direction, Vector3(0, 0, 1)))
+        rotation_matrix = cv2.Rodrigues(rotation_axis * rotation_angle)[0]
+        rotated_direction = np.dot(rotation_matrix, pixel_world_direction)
 
         rotated_pixel_world_direction = Vector3(*rotated_direction).normalized()
 
@@ -108,15 +108,15 @@ class CoordinateConverter:
         pixel_world_direction = np.vstack((x, y, np.ones_like(x)))
         pixel_world_direction = (pixel_world_direction / np.linalg.norm(pixel_world_direction.T, axis=1)).T
 
-        rotation_axis = self.towards_direction.cross(Vector3(0, 0, 1))
+        rotation_axis = np.cross(self.towards_direction, Vector3(0, 0, 1))
         rotation_angle = np.arccos(self.towards_direction.dot(Vector3(0, 0, 1)))
-        rotation_matrix = cv2.Rodrigues(rotation_axis.to_array() * rotation_angle)[0]
+        rotation_matrix = cv2.Rodrigues(rotation_axis * rotation_angle)[0]
         rotated_direction = np.dot(pixel_world_direction, rotation_matrix.T)
 
         rotated_pixel_world_direction = (rotated_direction.T / np.linalg.norm(rotated_direction, axis=1)).T
 
         intersection = self.ground_plane.intersect_many(
-            ray_origin=self.camera_position.to_array(), 
+            ray_origin=self.camera_position, 
             ray_directions=np.array(rotated_pixel_world_direction)
         )
 
