@@ -1,4 +1,4 @@
-calib_filename: "configs/calib_fish.json"
+calib_filename: "configs/calib_fish_l.json"
 camera_index: 1
 camera_position: [0, 0.43, 0.05]
 towards_direction: [0, 0, 1]

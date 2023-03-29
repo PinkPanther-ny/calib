@@ -1,4 +1,4 @@
-calib_filename: "configs/calib_data.json"
+calib_filename: "configs/calib_deepblue_l.json"
 camera_index: 0
 camera_position: [0, 0.43, 0.05]
 towards_direction: [0, 0, 1]
