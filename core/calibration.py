@@ -95,7 +95,7 @@ class Calib:
         image: Union[str, np.ndarray],
         output: Optional[str] = None,
         crop: bool = False,
-        ) -> np.ndarray:
+    ) -> np.ndarray:
         """
         Undistort an image using the calibration data.
         """
@@ -129,6 +129,42 @@ class Calib:
 
         return image
 
+    def distort(
+        self, 
+        image: Union[str, np.ndarray], 
+        output: Optional[str] = None
+    ) -> np.ndarray:
+        """
+        Distort an image using the calibration data.
+        """
+        if type(image) == str:
+            image = cv2.imread(image)
+
+        h, w = image.shape[:2]
+
+        # Calculate the distortion maps
+        mapx, mapy = cv2.initUndistortRectifyMap(
+            self.camera_matrix,
+            self.dist_coeffs,
+            None,
+            self.camera_matrix,
+            (w, h),
+            5  # float32
+        )
+
+        # Apply the inverse of the distortion maps
+        inv_mapx = cv2.flip(mapx, -1)
+        inv_mapy = cv2.flip(mapy, -1)
+
+        # Distort the image using the inverse distortion maps
+        image = cv2.remap(image, inv_mapx, inv_mapy, cv2.INTER_LINEAR)
+        image = cv2.flip(image, -1)
+
+        if output is not None:
+            cv2.imwrite(output, image)
+
+        return image
+
     def __repr__(self) -> str:
         """
         Represent the Calib object as a string.
@@ -153,5 +189,6 @@ if __name__ == "__main__":
         calib = Calib(image_dir="images/*.jpg", chessboard_size=(7, 12))
         calib.save(filename="configs/calib_data.json")
         calib.undistort("images/WIN_20230317_19_15_37_Pro.jpg", "calibrated.jpg", crop=False)
+        calib.distort("calibrated.jpg", "dis.jpg")
         calib.load(filename="configs/calib_data.json")
         print(calib)
