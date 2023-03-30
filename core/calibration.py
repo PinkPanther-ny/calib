@@ -129,11 +129,7 @@ class Calib:
 
         return image
 
-    def distort(
-        self, 
-        image: Union[str, np.ndarray], 
-        output: Optional[str] = None
-    ) -> np.ndarray:
+    def distort(self, image: Union[str, np.ndarray], output: Optional[str] = None, scaling_factor: float = 1.0) -> np.ndarray:
         """
         Distort an image using the calibration data.
         """
@@ -142,28 +138,30 @@ class Calib:
 
         h, w = image.shape[:2]
 
-        # Calculate the distortion maps
-        mapx, mapy = cv2.initUndistortRectifyMap(
+        # Invert the distortion coefficients
+        inv_dist_coeffs = -1 * self.dist_coeffs
+
+        # Compute the distortion maps
+        map1, map2 = cv2.initUndistortRectifyMap(
             self.camera_matrix,
-            self.dist_coeffs,
+            inv_dist_coeffs,
             None,
             self.camera_matrix,
             (w, h),
-            5  # float32
+            cv2.CV_32FC1,
         )
 
-        # Apply the inverse of the distortion maps
-        inv_mapx = cv2.flip(mapx, -1)
-        inv_mapy = cv2.flip(mapy, -1)
+        # Scale the distortion maps to compensate for the black areas
+        map1 = cv2.resize(map1, (w, h)) * scaling_factor
+        map2 = cv2.resize(map2, (w, h)) * scaling_factor
 
-        # Distort the image using the inverse distortion maps
-        image = cv2.remap(image, inv_mapx, inv_mapy, cv2.INTER_LINEAR)
-        image = cv2.flip(image, -1)
+        # Apply the distortion maps to the image
+        distorted_image = cv2.remap(image, map1, map2, cv2.INTER_LINEAR)
 
         if output is not None:
-            cv2.imwrite(output, image)
+            cv2.imwrite(output, distorted_image)
 
-        return image
+        return distorted_image
 
     def __repr__(self) -> str:
         """
