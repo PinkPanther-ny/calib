@@ -58,7 +58,7 @@ class CoordinateConverter:
         """
         if self.pixel_is_distort:
             distorted_pixels = np.array([[pixel]], dtype=np.float32)
-            undistorted_pixels = cv2.undistortPoints(distorted_pixels, self.camera_matrix, self.dist_coeffs, P=self.camera_matrix)
+            undistorted_pixels = cv2.undistortPointsIter(distorted_pixels, self.camera_matrix, self.dist_coeffs, R=None, P=self.camera_matrix, criteria=(cv2.TERM_CRITERIA_COUNT | cv2.TERM_CRITERIA_EPS, 50, 0.03))
             pixel = tuple(undistorted_pixels[0][0])
 
         fov_x, fov_y = self._calculate_fov()
@@ -97,7 +97,7 @@ class CoordinateConverter:
         pixel_coords = np.vstack((pixel_x.flatten(), pixel_y.flatten())).T
         
         if self.pixel_is_distort:
-            undistorted_pixel_coords = cv2.undistortPoints(pixel_coords.reshape(-1, 1, 2), self.camera_matrix, self.dist_coeffs, P=self.camera_matrix)
+            undistorted_pixel_coords = cv2.undistortPointsIter(pixel_coords.reshape(-1, 1, 2), self.camera_matrix, self.dist_coeffs, R=None, P=self.camera_matrix, criteria=(cv2.TERM_CRITERIA_COUNT | cv2.TERM_CRITERIA_EPS, 50, 0.03))
             pixel_coords = undistorted_pixel_coords.reshape(-1, 2)
 
         fov_x, fov_y = self._calculate_fov()
