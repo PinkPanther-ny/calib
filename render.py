@@ -31,12 +31,61 @@ class Renderer:
         self.frame_height = frame_height
         self.camera_matrix = camera_matrix
         self.camera_position = camera_position
-        self.towards_direction = towards_direction
+        self.towards_direction = np.array(towards_direction)
         
         # Initialize Pygame, pygame.OPENGL indicates that the window should be created with an OpenGL context.
         pygame.init()
         pygame.display.set_mode((self.frame_width, self.frame_height), pygame.DOUBLEBUF | pygame.OPENGL)
         self.compute()
+
+    def draw_compass(self, x, y, width, height):
+        # Calculate the angle between the camera's forward direction and the world's north direction (Z axis)
+        north_direction = np.array([0, 0, 1])
+        current_direction = self.towards_direction.copy()
+        current_direction[1] = 0
+        current_direction = current_direction / np.linalg.norm(current_direction)
+        angle = np.degrees(np.arccos(np.clip(np.dot(north_direction, current_direction), -1.0, 1.0)))
+
+        if self.towards_direction[0] < 0:
+            angle = 360 - angle
+
+        # Draw the compass background
+        glColor3f(0.2, 0.2, 0.2)
+        glBegin(GL_QUADS)
+        glVertex2f(x, y)
+        glVertex2f(x + width, y)
+        glVertex2f(x + width, y + height)
+        glVertex2f(x, y + height)
+        glEnd()
+
+        # Draw compass ticks and labels
+        labels = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
+        tick_interval = 45
+        tick_length = 10
+
+        for i, label in enumerate(labels):
+            tick_angle = i * tick_interval - angle
+            tick_x = x + width / 2 + (width / 2 - tick_length / 2) * np.cos(np.radians(tick_angle))
+            tick_y = y + height / 2 + (height / 2 - tick_length / 2) * np.sin(np.radians(tick_angle))
+
+            glColor3f(1, 1, 1)
+            glBegin(GL_LINES)
+            glVertex2f(tick_x, tick_y)
+            glVertex2f(tick_x + tick_length * np.cos(np.radians(tick_angle)), tick_y + tick_length * np.sin(np.radians(tick_angle)))
+            glEnd()
+
+            label_texture_id, label_width, label_height = self.create_texture_from_text(label, 18, (255, 255, 255))
+            label_x = tick_x + (tick_length + 5) * np.cos(np.radians(tick_angle)) - label_width / 2
+            label_y = tick_y + (tick_length + 5) * np.sin(np.radians(tick_angle)) - label_height / 2
+            self.draw_text(label_texture_id, label_x, label_y, label_width, label_height)
+
+        # Draw the compass needle
+        glColor3f(1, 0, 0)
+        glBegin(GL_TRIANGLES)
+        glVertex2f(x + width / 2, y + height / 2)
+        glVertex2f(x + width / 2 - 5, y + height)
+        glVertex2f(x + width / 2 + 5, y + height)
+        glEnd()
 
     def draw_fade_circle(self, center_color, outside_color, radius, num_segments):
         glBegin(GL_TRIANGLE_FAN)
@@ -131,7 +180,8 @@ class Renderer:
                 x_new = x * (xz_len_new / xz_len) - z * np.tan(np.radians(yaw))
                 z_new = z * (xz_len_new / xz_len) + x * np.tan(np.radians(yaw))
 
-                self.towards_direction = [x_new, y_new, z_new]
+                self.towards_direction = np.array([x_new, y_new, z_new])
+                self.towards_direction = self.towards_direction / np.linalg.norm(self.towards_direction)
 
             # Clear buffers
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
@@ -155,6 +205,8 @@ class Renderer:
             
             self.draw_text(camera_position_texture_id, 10, 30, cam_pos_width, cam_pos_height)
             self.draw_text(towards_direction_texture_id, 10, 10, towards_dir_width, towards_dir_height)
+            
+            self.draw_compass(self.frame_width // 2 - 100, self.frame_height - 40, 200, 20)
 
             pygame.display.flip()
             clock.tick(60)
