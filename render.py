@@ -38,6 +38,23 @@ class Renderer:
         pygame.display.set_mode((self.frame_width, self.frame_height), pygame.DOUBLEBUF | pygame.OPENGL)
         self.compute()
 
+    def draw_fade_circle(self, center_color, outside_color, radius, num_segments):
+        glBegin(GL_TRIANGLE_FAN)
+        
+        glColor3f(*center_color)
+        glVertex3f(0, -0.05, 0)
+        
+        angle_step = 2 * np.pi / num_segments
+        for i in range(num_segments + 1):
+            angle = i * angle_step
+            x = radius * np.cos(angle)
+            z = radius * np.sin(angle)
+
+            glColor3f(*outside_color)
+            glVertex3f(x, 0.001, z)
+
+        glEnd()
+
     def draw_grid(self, size, spacing):
         glBegin(GL_LINES)
         for i in range(-size, size + 1):
@@ -93,6 +110,8 @@ class Renderer:
             if keys[pygame.K_a]:
                 self.camera_position[0] += move_speed * self.towards_direction[2]
                 self.camera_position[2] -= move_speed * self.towards_direction[0]
+            if keys[pygame.K_ESCAPE]:
+                break
 
             # Mouse movement
             pygame.event.get_grab()
@@ -123,14 +142,74 @@ class Renderer:
             glLoadIdentity()
             gluLookAt(*self.camera_position, *camera_target, 0, 1, 0)
 
-            # Draw the grid
             glColor3f(0, 0, 0)
             self.draw_grid(100, 0.5)
+            self.draw_fade_circle(center_color=(1, 0, 0), outside_color=(0, 1, 0), radius=10, num_segments=100)
+
+            # Draw text on the screen
+            camera_position_text = f"Camera Position: {np.round(self.camera_position, 2)}"
+            towards_direction_text = f"Towards Direction: {np.round(self.towards_direction, 2)}"
+            
+            camera_position_texture_id, cam_pos_width, cam_pos_height = self.create_texture_from_text(camera_position_text, 18, (255, 255, 255))
+            towards_direction_texture_id, towards_dir_width, towards_dir_height = self.create_texture_from_text(towards_direction_text, 18, (255, 255, 255))
+            
+            self.draw_text(camera_position_texture_id, 10, 30, cam_pos_width, cam_pos_height)
+            self.draw_text(towards_direction_texture_id, 10, 10, towards_dir_width, towards_dir_height)
 
             pygame.display.flip()
             clock.tick(60)
-
         pygame.quit()
+        
+    def create_texture_from_text(self, text, font_size, color):
+        font = pygame.font.Font(None, font_size)
+        text_surface = font.render(text, True, color)
+        text_surface = pygame.transform.flip(text_surface, False, True)
+        width, height = text_surface.get_size()
+        text_data = np.frombuffer(text_surface.get_buffer(), np.uint8)
+
+        texture_id = glGenTextures(1)
+        glBindTexture(GL_TEXTURE_2D, texture_id)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, text_data)
+
+        return texture_id, width, height
+
+    def draw_text(self, texture_id, x, y, width, height):
+        glColor3f(0,0,0)
+        glMatrixMode(GL_PROJECTION)
+        glPushMatrix()
+        glLoadIdentity()
+        gluOrtho2D(0, self.frame_width, 0, self.frame_height)
+        
+        glMatrixMode(GL_MODELVIEW)
+        glPushMatrix()
+        glLoadIdentity()
+        
+        glEnable(GL_BLEND)
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+        glEnable(GL_TEXTURE_2D)
+        glBindTexture(GL_TEXTURE_2D, texture_id)
+
+        glBegin(GL_QUADS)
+        glTexCoord2f(0, 0)
+        glVertex2f(x, y)
+        glTexCoord2f(1, 0)
+        glVertex2f(x + width, y)
+        glTexCoord2f(1, 1)
+        glVertex2f(x + width, y + height)
+        glTexCoord2f(0, 1)
+        glVertex2f(x, y + height)
+        glEnd()
+
+        glDisable(GL_TEXTURE_2D)
+        glDisable(GL_BLEND)
+
+        glMatrixMode(GL_MODELVIEW)
+        glPopMatrix()
+
+        glMatrixMode(GL_PROJECTION)
+        glPopMatrix()
 
 
 
