@@ -137,7 +137,7 @@ class Renderer:
     def run(self):
         clock = pygame.time.Clock()
 
-        move_speed = 0.05
+        move_speed = 0.02
         mouse_sensitivity = 0.2
 
         running = True
@@ -147,20 +147,36 @@ class Renderer:
                     running = False
 
             keys = pygame.key.get_pressed()
+            
+            # Calculate movement vector
+            move_vector = [0.0, 0.0, 0.0]
             if keys[pygame.K_w]:
-                self.camera_position[0] += move_speed * self.towards_direction[0]
-                self.camera_position[2] += move_speed * self.towards_direction[2]
+                move_vector[0] += self.towards_direction[0]
+                move_vector[2] += self.towards_direction[2]
             if keys[pygame.K_s]:
-                self.camera_position[0] -= move_speed * self.towards_direction[0]
-                self.camera_position[2] -= move_speed * self.towards_direction[2]
+                move_vector[0] -= self.towards_direction[0]
+                move_vector[2] -= self.towards_direction[2]
             if keys[pygame.K_d]:
-                self.camera_position[0] -= move_speed * self.towards_direction[2]
-                self.camera_position[2] += move_speed * self.towards_direction[0]
+                move_vector[0] -= self.towards_direction[2]
+                move_vector[2] += self.towards_direction[0]
             if keys[pygame.K_a]:
-                self.camera_position[0] += move_speed * self.towards_direction[2]
-                self.camera_position[2] -= move_speed * self.towards_direction[0]
+                move_vector[0] += self.towards_direction[2]
+                move_vector[2] -= self.towards_direction[0]
+
+            # Normalize movement vector
+            move_vector_length = np.linalg.norm(move_vector)
+            if move_vector_length > 1e-6:
+                move_vector_normalized = [coord / move_vector_length for coord in move_vector]
+            else:
+                move_vector_normalized = move_vector
+
+            # Update camera position with normalized movement vector
+            self.camera_position[0] += move_speed * move_vector_normalized[0]
+            self.camera_position[2] += move_speed * move_vector_normalized[2]
+
             if keys[pygame.K_ESCAPE]:
-                break
+                running = False
+
 
             # Mouse movement
             pygame.event.get_grab()
@@ -262,7 +278,6 @@ class Renderer:
 
         glMatrixMode(GL_PROJECTION)
         glPopMatrix()
-
 
 
 if __name__ == "__main__":
