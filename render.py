@@ -35,7 +35,16 @@ class Renderer:
         
         # Initialize Pygame, pygame.OPENGL indicates that the window should be created with an OpenGL context.
         pygame.init()
+
+        # Set up multisampling
+        pygame.display.gl_set_attribute(pygame.GL_MULTISAMPLEBUFFERS, 1)
+        pygame.display.gl_set_attribute(pygame.GL_MULTISAMPLESAMPLES, 4)
+
         pygame.display.set_mode((self.frame_width, self.frame_height), pygame.DOUBLEBUF | pygame.OPENGL)
+
+        # Enable multisampling in the OpenGL context
+        glEnable(GL_MULTISAMPLE)
+
         self.compute()
 
     def draw_compass(self):
