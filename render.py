@@ -132,7 +132,7 @@ class Renderer:
         # Draw the grid
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         glColor3f(0, 0, 0)
-        self.draw_grid(100, 0.5)
+        self.draw_grid(50, 1)
 
     def run(self):
         clock = pygame.time.Clock()
@@ -166,9 +166,12 @@ class Renderer:
             # Normalize movement vector
             move_vector_length = np.linalg.norm(move_vector)
             if move_vector_length > 1e-6:
-                move_vector_normalized = [coord / move_vector_length for coord in move_vector]
+                move_vector_normalized = np.array([coord / move_vector_length for coord in move_vector])
             else:
-                move_vector_normalized = move_vector
+                move_vector_normalized = np.array(move_vector)
+
+            if keys[pygame.K_LSHIFT]:
+                move_vector_normalized *= 3
 
             # Update camera position with normalized movement vector
             self.camera_position[0] += move_speed * move_vector_normalized[0]
