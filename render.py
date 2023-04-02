@@ -84,10 +84,11 @@ class Renderer:
         self.draw_text(texture_id, screen_center_x - width // 2, self.frame_height - 35, width, height)
 
     def draw_fade_circle(self, center_color, outside_color, radius, num_segments):
+        height_level = -1
         glBegin(GL_TRIANGLE_FAN)
         
         glColor3f(*center_color)
-        glVertex3f(0, -0.05, 0)
+        glVertex3f(0, height_level, 0)
         
         angle_step = 2 * np.pi / num_segments
         for i in range(num_segments + 1):
@@ -96,7 +97,7 @@ class Renderer:
             z = radius * np.sin(angle)
 
             glColor3f(*outside_color)
-            glVertex3f(x, 0.001, z)
+            glVertex3f(x, height_level, z)
 
         glEnd()
 
