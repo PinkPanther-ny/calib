@@ -32,6 +32,8 @@ class CoordinateConverter:
         t0 = time.time()
         self._create_world_coordinate_map_fast()
         print(f"Coordinate map ({frame_width}, {frame_height}) computed in {time.time() - t0} secs.")
+        
+        self.world_coordinate_map_to_colored_depth_image(max_depth=100)
 
     def _calculate_fov(self) -> Tuple[float, float]:
         """
@@ -121,3 +123,28 @@ class CoordinateConverter:
         )
 
         self.world_coordinate_map = intersection.reshape(self.frame_height, self.frame_width, 3)
+
+    def world_coordinate_map_to_colored_depth_image(self, max_depth: float = 100.0) -> np.ndarray:
+        """
+        Convert a world coordinate map to a colored depth image.
+        
+        Args:
+            world_coordinate_map (np.ndarray): A 3D numpy array containing world coordinates (x, y, z) for each pixel.
+            max_depth (float): The maximum depth value to be visualized, used for scaling the depth values.
+            
+        Returns:
+            np.ndarray: A colored depth image.
+        """
+        # Extract the depth (z) values from the world_coordinate_map
+        depth_map = self.world_coordinate_map[:, :, 2]
+
+        # Normalize the depth values to the range [0, 1] based on the maximum depth value
+        depth_map_normalized = np.clip(depth_map / max_depth, 0, 1)
+
+        # Convert the normalized depth values to a grayscale image
+        gray_depth_image = (depth_map_normalized * 255).astype(np.uint8)
+
+        # Apply a colormap to the grayscale depth image to create a colored depth image
+        colored_depth_image = cv2.applyColorMap(gray_depth_image, cv2.COLORMAP_JET)
+        cv2.imwrite("color.png", colored_depth_image)
+        return colored_depth_image
