@@ -1,20 +1,70 @@
+import argparse
+import yaml
+import pygame
 import numpy as np
 from OpenGL.GL import *
 from OpenGL.GLU import *
-import pygame
 from typing import List
-
 from core import Calib
-import argparse
-import yaml
 
-def load_config(config_path: str):
-    """
-    Load the configuration from a YAML file.
-    """
-    with open(config_path, 'r') as file:
-        config = yaml.safe_load(file)
-    return config
+class Grid:
+    def __init__(self, size, spacing, colored=True):
+        self.size = size
+        self.spacing = spacing
+        self.colored = colored
+
+    def draw(self, colored=True):
+        if colored:
+            # Define the colors for the gradient
+            colors = [
+                (1, 0, 0),  # Red
+                (0, 1, 0),  # Green
+                (0, 0, 1),  # Blue
+            ]
+
+            max_distance = self.size * self.spacing
+
+            # Draw filled quads for each grid cell
+            glBegin(GL_QUADS)
+            for i in range(-self.size, self.size):
+                for j in range(-self.size, self.size):
+                    for x, z in [(i, j), (i + 1, j), (i + 1, j + 1), (i, j + 1)]:
+                        # Calculate the distance from the center
+                        distance = np.sqrt(x * x + z * z)
+
+                        # Calculate the color based on the distance
+                        t = distance / max_distance
+                        t = min(1, max(0, t))
+
+                        if t < 0.5:
+                            t = t * 2
+                            color = (
+                                colors[0][0] * (1 - t) + colors[1][0] * t,
+                                colors[0][1] * (1 - t) + colors[1][1] * t,
+                                colors[0][2] * (1 - t) + colors[1][2] * t,
+                            )
+                        else:
+                            t = (t - 0.5) * 2
+                            color = (
+                                colors[1][0] * (1 - t) + colors[2][0] * t,
+                                colors[1][1] * (1 - t) + colors[2][1] * t,
+                                colors[1][2] * (1 - t) + colors[2][2] * t,
+                            )
+
+                        glColor3f(*color)
+                        glVertex3f(x * self.spacing, 0, z * self.spacing)
+            glEnd()
+
+        # Draw the grid lines
+        glBegin(GL_LINES)
+        glColor3f(0, 0, 0)
+        for i in range(-self.size, self.size + 1):
+            glVertex3f(i * self.spacing, 0.001, -self.size * self.spacing)
+            glVertex3f(i * self.spacing, 0.001, self.size * self.spacing)
+            glVertex3f(-self.size * self.spacing, 0.001, i * self.spacing)
+            glVertex3f(self.size * self.spacing, 0.001, i * self.spacing)
+        glEnd()
+
 
 class Renderer:
     def __init__(
@@ -36,13 +86,13 @@ class Renderer:
 
         # Set up multisampling
         pygame.display.gl_set_attribute(pygame.GL_MULTISAMPLEBUFFERS, 1)
-        pygame.display.gl_set_attribute(pygame.GL_MULTISAMPLESAMPLES, 4)
+        pygame.display.gl_set_attribute(pygame.GL_MULTISAMPLESAMPLES, 8)
 
         pygame.display.set_mode((self.frame_width, self.frame_height), pygame.DOUBLEBUF | pygame.OPENGL)
 
         # Enable multisampling in the OpenGL context
         glEnable(GL_MULTISAMPLE)
-
+        self.grid = Grid(20, 0.5)
         self.compute()
 
     def draw_compass(self):
@@ -74,12 +124,10 @@ class Renderer:
             x = screen_center_x + offset_x
             y = self.frame_height - 20
 
-            texture_id, width, height = self.create_texture_from_text(label, 18, (255, 255, 255))
-            self.draw_text(texture_id, x - width // 2, y, width, height)
+            self.draw_text(label, x, y, align_center=True)
 
         angle_text = f"{compass_angle:.1f}°"
-        texture_id, width, height = self.create_texture_from_text(angle_text, 18, (255, 255, 255))
-        self.draw_text(texture_id, screen_center_x - width // 2, self.frame_height - 35, width, height)
+        self.draw_text(angle_text, screen_center_x, self.frame_height - 35, align_center=True)
 
     def draw_fade_circle(self, center_color, outside_color, radius, num_segments):
         height_level = -1
@@ -97,58 +145,6 @@ class Renderer:
             glColor3f(*outside_color)
             glVertex3f(x, height_level, z)
 
-        glEnd()
-
-    def draw_grid(self, size, spacing, colored=True):
-        if colored:
-            # Define the colors for the gradient
-            colors = [
-                (1, 0, 0),  # Red
-                (0, 1, 0),  # Green
-                (0, 0, 1),  # Blue
-            ]
-
-            max_distance = size * spacing
-
-            # Draw filled quads for each grid cell
-            glBegin(GL_QUADS)
-            for i in range(-size, size):
-                for j in range(-size, size):
-                    for x, z in [(i, j), (i + 1, j), (i + 1, j + 1), (i, j + 1)]:
-                        # Calculate the distance from the center
-                        distance = np.sqrt(x * x + z * z)
-
-                        # Calculate the color based on the distance
-                        t = distance / max_distance
-                        t = min(1, max(0, t))
-
-                        if t < 0.5:
-                            t = t * 2
-                            color = (
-                                colors[0][0] * (1 - t) + colors[1][0] * t,
-                                colors[0][1] * (1 - t) + colors[1][1] * t,
-                                colors[0][2] * (1 - t) + colors[1][2] * t,
-                            )
-                        else:
-                            t = (t - 0.5) * 2
-                            color = (
-                                colors[1][0] * (1 - t) + colors[2][0] * t,
-                                colors[1][1] * (1 - t) + colors[2][1] * t,
-                                colors[1][2] * (1 - t) + colors[2][2] * t,
-                            )
-
-                        glColor3f(*color)
-                        glVertex3f(x * spacing, 0, z * spacing)
-            glEnd()
-
-        # Draw the grid lines
-        glBegin(GL_LINES)
-        glColor3f(0, 0, 0)
-        for i in range(-size, size + 1):
-            glVertex3f(i * spacing, 0.001, -size * spacing)
-            glVertex3f(i * spacing, 0.001, size * spacing)
-            glVertex3f(-size * spacing, 0.001, i * spacing)
-            glVertex3f(size * spacing, 0.001, i * spacing)
         glEnd()
 
     def compute(self):
@@ -170,11 +166,16 @@ class Renderer:
         # Draw the grid
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         glColor3f(0, 0, 0)
-        self.draw_grid(50, 1)
+
+        # Draw the grid using the Grid class
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+        glColor3f(0, 0, 0)
+        self.grid.draw()
 
     def run(self):
         clock = pygame.time.Clock()
 
+        lifting_speed = 0.05
         move_speed = 0.02
         mouse_sensitivity = 0.2
 
@@ -183,6 +184,12 @@ class Renderer:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
+                                    # Mouse scroll event
+                if event.type == pygame.MOUSEBUTTONDOWN or event.type == pygame.MOUSEBUTTONUP:
+                    if event.button == 4:  # Scroll up
+                        self.camera_position[1] += lifting_speed
+                    elif event.button == 5:  # Scroll down
+                        self.camera_position[1] -= lifting_speed
 
             keys = pygame.key.get_pressed()
 
@@ -250,18 +257,15 @@ class Renderer:
             gluLookAt(*self.camera_position, *camera_target, 0, 1, 0)
 
             glColor3f(0, 0, 0)
-            self.draw_grid(20, 0.5)
+            self.grid.draw()
             # self.draw_fade_circle(center_color=(1, 0, 0), outside_color=(0, 1, 0), radius=10, num_segments=100)
 
             # Draw text on the screen
             camera_position_text = f"Camera Position: {np.round(self.camera_position, 2)}"
             towards_direction_text = f"Towards Direction: {np.round(self.towards_direction, 2)}"
-            
-            camera_position_texture_id, cam_pos_width, cam_pos_height = self.create_texture_from_text(camera_position_text, 18, (255, 255, 255))
-            towards_direction_texture_id, towards_dir_width, towards_dir_height = self.create_texture_from_text(towards_direction_text, 18, (255, 255, 255))
-            
-            self.draw_text(camera_position_texture_id, 10, 30, cam_pos_width, cam_pos_height)
-            self.draw_text(towards_direction_texture_id, 10, 10, towards_dir_width, towards_dir_height)
+
+            self.draw_text(camera_position_text, 10, 30)
+            self.draw_text(towards_direction_text, 10, 10)
             self.draw_compass()
 
             pygame.display.flip()
@@ -283,7 +287,10 @@ class Renderer:
 
         return texture_id, width, height
 
-    def draw_text(self, texture_id, x, y, width, height):
+    def draw_text(self, text, x, y, align_center=False, font_size=18, font_color=(255, 255, 255)):
+        texture_id, width, height = self.create_texture_from_text(text, font_size, font_color)
+        if align_center:
+            x = x - width // 2
         glColor3f(0,0,0)
         glMatrixMode(GL_PROJECTION)
         glPushMatrix()
@@ -319,6 +326,13 @@ class Renderer:
         glMatrixMode(GL_PROJECTION)
         glPopMatrix()
 
+def load_config(config_path: str):
+    """
+    Load the configuration from a YAML file.
+    """
+    with open(config_path, 'r') as file:
+        config = yaml.safe_load(file)
+    return config
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Load configuration from a YAML file.")
