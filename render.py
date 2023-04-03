@@ -80,20 +80,8 @@ class Renderer:
         self.camera_matrix = camera_matrix
         self.camera_position = camera_position
         self.towards_direction = np.array(towards_direction)
-        
-        # Initialize Pygame, pygame.OPENGL indicates that the window should be created with an OpenGL context.
-        pygame.init()
-
-        # Set up multisampling
-        pygame.display.gl_set_attribute(pygame.GL_MULTISAMPLEBUFFERS, 1)
-        pygame.display.gl_set_attribute(pygame.GL_MULTISAMPLESAMPLES, 8)
-
-        pygame.display.set_mode((self.frame_width, self.frame_height), pygame.DOUBLEBUF | pygame.OPENGL)
-
-        # Enable multisampling in the OpenGL context
-        glEnable(GL_MULTISAMPLE)
+        self.setup()
         self.grid = Grid(20, 0.5)
-        self.compute()
 
     def draw_compass(self):
         
@@ -129,7 +117,7 @@ class Renderer:
         angle_text = f"{compass_angle:.1f}°"
         self.draw_text(angle_text, screen_center_x, self.frame_height - 35, align_center=True)
 
-    def draw_fade_circle(self, center_color, outside_color, radius, num_segments):
+    def draw_fade_circle(self, center_color=(1, 0, 0), outside_color=(0, 1, 0), radius=10, num_segments=100):
         height_level = -1
         glBegin(GL_TRIANGLE_FAN)
         
@@ -147,7 +135,18 @@ class Renderer:
 
         glEnd()
 
-    def compute(self):
+    def setup(self):
+        # Initialize Pygame, pygame.OPENGL indicates that the window should be created with an OpenGL context.
+        pygame.init()
+
+        # Set up multisampling
+        pygame.display.gl_set_attribute(pygame.GL_MULTISAMPLEBUFFERS, 1)
+        pygame.display.gl_set_attribute(pygame.GL_MULTISAMPLESAMPLES, 8)
+        pygame.display.set_mode((self.frame_width, self.frame_height), pygame.DOUBLEBUF | pygame.OPENGL)
+
+        # Enable multisampling in the OpenGL context
+        glEnable(GL_MULTISAMPLE)
+        
         # Set up OpenGL
         glClearColor(0.5, 0.5, 0.5, 1)
         glMatrixMode(GL_PROJECTION)
@@ -163,15 +162,20 @@ class Renderer:
         # Set up the viewport
         glViewport(0, 0, self.frame_width, self.frame_height)
 
-        # Draw the grid
+    def render(self):
+        # Clear buffers
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-        glColor3f(0, 0, 0)
 
-        # Draw the grid using the Grid class
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-        glColor3f(0, 0, 0)
-        self.grid.draw()
-
+        camera_target = [self.camera_position[i] + self.towards_direction[i] for i in range(3)]
+        glMatrixMode(GL_MODELVIEW)
+        glLoadIdentity()
+        gluLookAt(*self.camera_position, *camera_target, 0, 1, 0)
+        
+        self.grid.draw(colored=True)
+        self.draw_compass()
+        self.draw_text(f"Camera Position: {np.round(self.camera_position, 2)}", 10, 30)
+        self.draw_text(f"Towards Direction: {np.round(self.towards_direction, 2)}", 10, 10)
+    
     def run(self):
         clock = pygame.time.Clock()
 
@@ -247,26 +251,7 @@ class Renderer:
                 self.towards_direction = np.array([x_new, y_new, z_new])
                 self.towards_direction = self.towards_direction / np.linalg.norm(self.towards_direction)
 
-            # Clear buffers
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-
-            # Set up the camera
-            camera_target = [self.camera_position[i] + self.towards_direction[i] for i in range(3)]
-            glMatrixMode(GL_MODELVIEW)
-            glLoadIdentity()
-            gluLookAt(*self.camera_position, *camera_target, 0, 1, 0)
-
-            glColor3f(0, 0, 0)
-            self.grid.draw()
-            # self.draw_fade_circle(center_color=(1, 0, 0), outside_color=(0, 1, 0), radius=10, num_segments=100)
-
-            # Draw text on the screen
-            camera_position_text = f"Camera Position: {np.round(self.camera_position, 2)}"
-            towards_direction_text = f"Towards Direction: {np.round(self.towards_direction, 2)}"
-
-            self.draw_text(camera_position_text, 10, 30)
-            self.draw_text(towards_direction_text, 10, 10)
-            self.draw_compass()
+            self.render()
 
             pygame.display.flip()
             clock.tick(60)
