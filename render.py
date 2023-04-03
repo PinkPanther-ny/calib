@@ -1,8 +1,6 @@
-import cv2
 import numpy as np
 from OpenGL.GL import *
 from OpenGL.GLU import *
-from PIL import Image
 import pygame
 from typing import List
 
@@ -101,13 +99,56 @@ class Renderer:
 
         glEnd()
 
-    def draw_grid(self, size, spacing):
+    def draw_grid(self, size, spacing, colored=True):
+        if colored:
+            # Define the colors for the gradient
+            colors = [
+                (1, 0, 0),  # Red
+                (0, 1, 0),  # Green
+                (0, 0, 1),  # Blue
+            ]
+
+            max_distance = size * spacing
+
+            # Draw filled quads for each grid cell
+            glBegin(GL_QUADS)
+            for i in range(-size, size):
+                for j in range(-size, size):
+                    for x, z in [(i, j), (i + 1, j), (i + 1, j + 1), (i, j + 1)]:
+                        # Calculate the distance from the center
+                        distance = np.sqrt(x * x + z * z)
+
+                        # Calculate the color based on the distance
+                        t = distance / max_distance
+                        t = min(1, max(0, t))
+
+                        if t < 0.5:
+                            t = t * 2
+                            color = (
+                                colors[0][0] * (1 - t) + colors[1][0] * t,
+                                colors[0][1] * (1 - t) + colors[1][1] * t,
+                                colors[0][2] * (1 - t) + colors[1][2] * t,
+                            )
+                        else:
+                            t = (t - 0.5) * 2
+                            color = (
+                                colors[1][0] * (1 - t) + colors[2][0] * t,
+                                colors[1][1] * (1 - t) + colors[2][1] * t,
+                                colors[1][2] * (1 - t) + colors[2][2] * t,
+                            )
+
+                        glColor3f(*color)
+                        glVertex3f(x * spacing, 0, z * spacing)
+            glEnd()
+
+        # Draw the grid lines
         glBegin(GL_LINES)
+        glColor3f(0, 0, 0)
         for i in range(-size, size + 1):
-            glVertex3f(i * spacing, 0, -size * spacing)
-            glVertex3f(i * spacing, 0, size * spacing)
-            glVertex3f(-size * spacing, 0, i * spacing)
-            glVertex3f(size * spacing, 0, i * spacing)
+            glVertex3f(i * spacing, 0.001, -size * spacing)
+            glVertex3f(i * spacing, 0.001, size * spacing)
+            glVertex3f(-size * spacing, 0.001, i * spacing)
+            glVertex3f(size * spacing, 0.001, i * spacing)
         glEnd()
 
     def compute(self):
@@ -144,6 +185,10 @@ class Renderer:
                     running = False
 
             keys = pygame.key.get_pressed()
+
+            if keys[pygame.K_ESCAPE]:
+                running = False
+                continue
             
             # Calculate movement vector
             move_vector = [0.0, 0.0, 0.0]
@@ -173,10 +218,6 @@ class Renderer:
             # Update camera position with normalized movement vector
             self.camera_position[0] += move_speed * move_vector_normalized[0]
             self.camera_position[2] += move_speed * move_vector_normalized[2]
-
-            if keys[pygame.K_ESCAPE]:
-                running = False
-
 
             # Mouse movement
             pygame.event.get_grab()
@@ -209,8 +250,8 @@ class Renderer:
             gluLookAt(*self.camera_position, *camera_target, 0, 1, 0)
 
             glColor3f(0, 0, 0)
-            self.draw_grid(100, 0.5)
-            self.draw_fade_circle(center_color=(1, 0, 0), outside_color=(0, 1, 0), radius=10, num_segments=100)
+            self.draw_grid(20, 0.5)
+            # self.draw_fade_circle(center_color=(1, 0, 0), outside_color=(0, 1, 0), radius=10, num_segments=100)
 
             # Draw text on the screen
             camera_position_text = f"Camera Position: {np.round(self.camera_position, 2)}"
