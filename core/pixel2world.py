@@ -33,7 +33,7 @@ class CoordinateConverter:
         self._create_world_coordinate_map_fast()
         print(f"Coordinate map ({frame_width}, {frame_height}) computed in {time.time() - t0} secs.")
         
-        self.world_coordinate_map_to_colored_depth_image(max_depth=100)
+        # self.world_coordinate_map_to_colored_depth_image(max_depth=100)
 
     def _calculate_fov(self) -> Tuple[float, float]:
         """
