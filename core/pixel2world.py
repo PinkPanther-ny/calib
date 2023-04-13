@@ -33,7 +33,7 @@ class CoordinateConverter:
         self._create_world_coordinate_map_fast()
         print(f"Coordinate map ({frame_width}, {frame_height}) computed in {time.time() - t0} secs.")
         
-        # self.world_coordinate_map_to_colored_depth_image(max_depth=100)
+        self.world_coordinate_map_to_colored_depth_image(max_depth=3)
 
     def _calculate_fov(self) -> Tuple[float, float]:
         """
@@ -138,6 +138,9 @@ class CoordinateConverter:
         # Extract the depth (z) values from the world_coordinate_map
         depth_map = self.world_coordinate_map[:, :, 2]
 
+        # Create a mask for infinite depth values
+        inf_depth_mask = np.isinf(depth_map)
+
         # Normalize the depth values to the range [0, 1] based on the maximum depth value
         depth_map_normalized = np.clip(depth_map / max_depth, 0, 1)
 
@@ -146,5 +149,9 @@ class CoordinateConverter:
 
         # Apply a colormap to the grayscale depth image to create a colored depth image
         colored_depth_image = cv2.applyColorMap(gray_depth_image, cv2.COLORMAP_JET)
+
+        # Set the color of infinite depth values to white
+        colored_depth_image[inf_depth_mask] = [128, 128, 128]
+
         cv2.imwrite("color.png", colored_depth_image)
         return colored_depth_image
