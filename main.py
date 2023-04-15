@@ -18,15 +18,14 @@ def main(config: Dict) -> None:
     Run the main program loop with the given configuration.
     """
     calib = Calib(filename=config["calib_filename"])
-    camera_matrix, dist_coeffs = calib.camera_matrix, calib.dist_coeffs
+    camera_matrix, dist_coeffs = calib.new_camera_matrix, calib.dist_coeffs
     frame_width, frame_height = calib.width, calib.height
 
     camera_position = config["camera_position"]
     towards_direction = config["towards_direction"]
 
     mouse_event_handler = MouseEventHandler(
-        frame_width, frame_height,
-        camera_matrix, dist_coeffs,
+        frame_width, frame_height, camera_matrix,
         camera_position, towards_direction
     )
 

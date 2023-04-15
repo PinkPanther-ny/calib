@@ -10,7 +10,6 @@ class MouseEventHandler:
         frame_width: int,
         frame_height: int,
         camera_matrix: np.ndarray,
-        dist_coeffs: np.ndarray,
         camera_position: List[float],
         towards_direction: List[float],
     ):
@@ -18,7 +17,7 @@ class MouseEventHandler:
         Initialize the MouseEventHandler class.
         """
         self.coordinate_converter = CoordinateConverter(
-            frame_width, frame_height, camera_matrix, dist_coeffs, camera_position, towards_direction, pixel_is_distort=False
+            frame_width, frame_height, camera_matrix, camera_position, towards_direction
         )
         self.text_to_display = ""
         self.cursor_position = (0, 0)

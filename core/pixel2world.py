@@ -11,10 +11,8 @@ class CoordinateConverter:
         frame_width: int,
         frame_height: int,
         camera_matrix: np.ndarray,
-        dist_coeffs: np.ndarray,
         camera_position: List[float],
         towards_direction: List[float],
-        pixel_is_distort: bool = True
     ):
         """
         Initialize the CoordinateConverter class.
@@ -22,18 +20,15 @@ class CoordinateConverter:
         self.frame_width = frame_width
         self.frame_height = frame_height
         self.camera_matrix = camera_matrix
-        self.dist_coeffs = dist_coeffs
         self.camera_position = Vector3(*camera_position)
         self.towards_direction = Vector3(*towards_direction).normalized()
         self.ground_plane = Plane(Vector3(0, 0, 0), Vector3(0, 1, 0))
         
-        self.pixel_is_distort = pixel_is_distort
-
         t0 = time.time()
-        self._create_world_coordinate_map_fast()
+        self._create_world_coordinate_map()
         print(f"Coordinate map ({frame_width}, {frame_height}) computed in {time.time() - t0} secs.")
         
-        self.world_coordinate_map_to_colored_depth_image(max_depth=3)
+        self.colored_depth_image = self.world_coordinate_map_to_colored_depth_image(max_depth=3)
 
     def _calculate_fov(self) -> Tuple[float, float]:
         """
@@ -58,10 +53,6 @@ class CoordinateConverter:
         """
         Convert a pixel coordinate to a world coordinate.
         """
-        if self.pixel_is_distort:
-            distorted_pixels = np.array([[pixel]], dtype=np.float32)
-            undistorted_pixels = cv2.undistortPointsIter(distorted_pixels, self.camera_matrix, self.dist_coeffs, R=None, P=self.camera_matrix, criteria=(cv2.TERM_CRITERIA_COUNT | cv2.TERM_CRITERIA_EPS, 50, 0.03))
-            pixel = tuple(undistorted_pixels[0][0])
 
         fov_x, fov_y = self._calculate_fov()
         aspect_ratio = self.frame_width / self.frame_height
@@ -97,10 +88,6 @@ class CoordinateConverter:
         
         pixel_x, pixel_y = np.meshgrid(np.arange(self.frame_width, dtype=np.float32), np.arange(self.frame_height, dtype=np.float32))
         pixel_coords = np.vstack((pixel_x.flatten(), pixel_y.flatten())).T
-        
-        if self.pixel_is_distort:
-            undistorted_pixel_coords = cv2.undistortPointsIter(pixel_coords.reshape(-1, 1, 2), self.camera_matrix, self.dist_coeffs, R=None, P=self.camera_matrix, criteria=(cv2.TERM_CRITERIA_COUNT | cv2.TERM_CRITERIA_EPS, 50, 0.03))
-            pixel_coords = undistorted_pixel_coords.reshape(-1, 2)
 
         fov_x, fov_y = self._calculate_fov()
         aspect_ratio = self.frame_width / self.frame_height
@@ -124,7 +111,7 @@ class CoordinateConverter:
 
         self.world_coordinate_map = intersection.reshape(self.frame_height, self.frame_width, 3)
 
-    def world_coordinate_map_to_colored_depth_image(self, max_depth: float = 100.0) -> np.ndarray:
+    def world_coordinate_map_to_colored_depth_image(self, max_depth: float = 100.0, filename="color.png") -> np.ndarray:
         """
         Convert a world coordinate map to a colored depth image.
         
@@ -153,5 +140,5 @@ class CoordinateConverter:
         # Set the color of infinite depth values to white
         colored_depth_image[inf_depth_mask] = [128, 128, 128]
 
-        cv2.imwrite("color.png", colored_depth_image)
+        cv2.imwrite(filename, colored_depth_image)
         return colored_depth_image
