@@ -56,6 +56,13 @@ class Calib:
 
         self.camera_matrix = camera_matrix
         self.dist_coeffs = dist_coeffs
+        
+        self.new_camera_matrix, self.roi = cv2.getOptimalNewCameraMatrix(
+            self.camera_matrix, 
+            self.dist_coeffs, 
+            (self.width, self.height), 
+            0
+        )
 
     def save(self, filename: str = "calib_data.json") -> None:
         """
@@ -83,6 +90,13 @@ class Calib:
         self.camera_matrix = np.array(calibration_data["camera_matrix"])
         self.dist_coeffs = np.array(calibration_data["dist_coeffs"])
 
+        self.new_camera_matrix, self.roi = cv2.getOptimalNewCameraMatrix(
+            self.camera_matrix, 
+            self.dist_coeffs, 
+            (self.width, self.height), 
+            0
+        )
+
         return {
             "width": self.width,
             "height": self.height,
@@ -101,27 +115,19 @@ class Calib:
         """
         if type(image)==str:
             image = cv2.imread(image)
-
-        h,  w = image.shape[:2]
-        newcameramtx, roi = cv2.getOptimalNewCameraMatrix(
-            self.camera_matrix, 
-            self.dist_coeffs, 
-            (w, h), 
-            0
-        )
-
+            
         # undistort
         image = cv2.undistort(
             image, 
             self.camera_matrix, 
             self.dist_coeffs, 
             None, 
-            newcameramtx
+            self.new_camera_matrix
         )
 
         if crop:
             # crop the image
-            x, y, w, h = roi
+            x, y, w, h = self.roi
             image = image[y:y+h, x:x+w]
 
         if output is not None:
@@ -190,17 +196,15 @@ if __name__ == "__main__":
     calib.load(filename="configs/calib_fixed_8x6.json")
     print(calib)
     
-    # cam1 = False
-    # if cam1:
-    #     calib = Calib(image_dir="fisheye/*.jpg", chessboard_size=(7, 12))
-    #     calib.save(filename="configs/calib_fish.json")
-    #     calib.undistort("fisheye/WIN_20230323_14_10_45_Pro.jpg", "calibrated.jpg", crop=False)
-    #     calib.load(filename="configs/calib_fish.json")
-    #     print(calib)
-    # else:
-    #     calib = Calib(image_dir="images/*.jpg", chessboard_size=(7, 12))
-    #     calib.save(filename="configs/calib_data.json")
-    #     calib.undistort("images/WIN_20230317_19_15_37_Pro.jpg", "calibrated.jpg", crop=False)
-    #     calib.distort("calibrated.jpg", "dis.jpg")
-    #     calib.load(filename="configs/calib_data.json")
-    #     print(calib)
+    # calib = Calib(image_dir="fisheye/*.jpg", chessboard_size=(7, 12))
+    # calib.save(filename="configs/calib_fish.json")
+    # calib.undistort("fisheye/WIN_20230323_14_10_45_Pro.jpg", "calibrated.jpg", crop=False)
+    # calib.load(filename="configs/calib_fish.json")
+    # print(calib)
+
+    # calib = Calib(image_dir="images/*.jpg", chessboard_size=(7, 12))
+    # calib.save(filename="configs/calib_data.json")
+    # calib.undistort("images/WIN_20230317_19_15_37_Pro.jpg", "calibrated.jpg", crop=False)
+    # calib.distort("calibrated.jpg", "dis.jpg")
+    # calib.load(filename="configs/calib_data.json")
+    # print(calib)
