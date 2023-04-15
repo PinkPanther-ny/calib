@@ -35,9 +35,8 @@ class CoordinateConverter:
         Calculate the camera's field of view (FOV) in the x and y directions.
         """
         fx, fy = self.camera_matrix[0, 0], self.camera_matrix[1, 1]
-        w, h = self.camera_matrix[0, 2] * 2, self.camera_matrix[1, 2] * 2
-        fov_x = 2 * np.arctan(w / (2 * fx)) * 180 / np.pi
-        fov_y = 2 * np.arctan(h / (2 * fy)) * 180 / np.pi
+        fov_x = 2 * np.arctan(self.frame_width / (2 * fx)) * 180 / np.pi
+        fov_y = 2 * np.arctan(self.frame_height / (2 * fy)) * 180 / np.pi
         return fov_x, fov_y
 
     def pixel_to_world_coordinate(self, pixel: Tuple[float, float]) -> Vector3:
