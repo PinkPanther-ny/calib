@@ -2,7 +2,7 @@ import argparse
 import cv2
 import yaml
 from typing import Dict
-from core import Calib, MouseEventHandler, Renderer
+from core import Calib, MouseEventHandler, Gyroscope, combine_image
 
 
 def load_config(config_path: str) -> Dict:
@@ -23,20 +23,20 @@ def main(config: Dict) -> None:
 
     camera_position = config["camera_position"]
     towards_direction = config["towards_direction"]
-
+    
+    try:
+        gyro = Gyroscope("COM4")
+        towards_direction = gyro.data["towards_direction"]
+        print(f"Gyroscope detected, towards direction: {towards_direction}")
+    except Gyroscope.GyroscopeIniFailed as e:
+        print(str(e))
+        print(f"Using towards direction from config: {towards_direction}")
+    
     mouse_event_handler = MouseEventHandler(
         frame_width, frame_height, camera_matrix,
         camera_position, towards_direction
     )
 
-    # renderer = Renderer(
-    #     frame_width, frame_height, 
-    #     camera_matrix, dist_coeffs,
-    #     camera_position, towards_direction
-    # )
-    # grid_image = renderer.undistort_image
-    # dis_grid_image = renderer.distorted_image
-    
     cap = cv2.VideoCapture(config["camera_index"], cv2.CAP_DSHOW)
     # Set camera resolution
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, frame_width)
@@ -50,8 +50,7 @@ def main(config: Dict) -> None:
         if not ret:
             break
         mouse_event_handler.display_text_on_frame(frame)
-        # cv2.imshow("Camera Frame", renderer.combine(calib.distort(grid_image), frame))
-        cv2.imshow("Camera Frame", frame)
+        cv2.imshow("Camera Frame", combine_image(frame, mouse_event_handler.coordinate_converter.colored_depth_image))
 
         if cv2.waitKey(1) & 0xFF == ord("q"):
             break
