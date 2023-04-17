@@ -25,10 +25,10 @@ class CoordinateConverter:
         self.ground_plane = Plane(Vector3(0, 0, 0), Vector3(0, 1, 0))
         
         t0 = time.time()
-        self._create_world_coordinate_map()
+        self._create_world_coordinate_map_fast()
         print(f"Coordinate map ({frame_width}, {frame_height}) computed in {time.time() - t0} secs.")
         
-        self.colored_depth_image = self.world_coordinate_map_to_colored_depth_image(max_depth=3)
+        self.colored_depth_image = self.world_coordinate_map_to_colored_depth_image(max_depth=2.5)
 
     def _calculate_fov(self, degree=True) -> Tuple[float, float]:
         """
@@ -90,6 +90,36 @@ class CoordinateConverter:
             for j in range(self.frame_width):
                 world_coord = self._pixel_to_world_coordinate((j, i))
                 self.world_coordinate_map[i, j] = [world_coord.x, world_coord.y, world_coord.z]
+
+    def _create_world_coordinate_map_fast(self):
+        # Create a grid of pixel coordinates
+        pixel_x, pixel_y = np.meshgrid(np.arange(self.frame_width), np.arange(self.frame_height))
+
+        # Calculate the u and v values for each pixel
+        fov_x, fov_y = self._calculate_fov(degree=False)
+        aspect_ratio = self.frame_width / self.frame_height
+        pixel_u = (2 * (pixel_x + 0.5) / self.frame_width - 1) * np.tan(fov_x / 2) * aspect_ratio
+        pixel_v = (1 - 2 * (pixel_y + 0.5) / self.frame_height) * np.tan(fov_y / 2)
+
+        # Calculate the camera's coordinate system
+        up = np.array([0, 1, 0])
+        horizontal = np.cross(self.towards_direction, up)
+        vertical = np.cross(horizontal, self.towards_direction)
+
+        # Find the center of the image plane in world coordinates
+        image_plane_center = self.camera_position + self.towards_direction
+
+        # Calculate the position of each pixel in the world coordinate system
+        pixel_positions_in_world = image_plane_center + pixel_u[..., np.newaxis] * horizontal + pixel_v[..., np.newaxis] * vertical
+
+        # Create the ray direction vectors and normalize them
+        ray_directions = pixel_positions_in_world - self.camera_position
+
+        # Calculate the intersection points of the rays with the ground plane
+        intersections = self.ground_plane.intersect_many(self.camera_position, ray_directions)
+
+        # Create the world_coordinate_map from the intersections
+        self.world_coordinate_map = intersections.astype(np.float32)
 
     def world_coordinate_map_to_colored_depth_image(self, max_depth: float = 100.0, filename="color.png") -> np.ndarray:
         """
