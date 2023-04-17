@@ -1,3 +1,4 @@
+from threading import Thread
 import cv2
 import time
 import numpy as np
@@ -13,6 +14,7 @@ class CoordinateConverter:
         camera_matrix: np.ndarray,
         camera_position: List[float],
         towards_direction: List[float],
+        start_update: bool,
     ):
         """
         Initialize the CoordinateConverter class.
@@ -28,7 +30,12 @@ class CoordinateConverter:
         self._create_world_coordinate_map_fast()
         print(f"Coordinate map ({frame_width}, {frame_height}) computed in {time.time() - t0} secs.")
         
-        self.colored_depth_image = self.world_coordinate_map_to_colored_depth_image(max_depth=2.5)
+        self.compute_depth_map(max_depth=2.5)
+        
+        if start_update:
+            self.update_thread = Thread(target=self.update_depth_map)
+            self.update_thread.daemon = True
+            self.update_thread.start()
 
     def _calculate_fov(self, degree=True) -> Tuple[float, float]:
         """
@@ -42,14 +49,14 @@ class CoordinateConverter:
         else:
             return fov_x, fov_y
 
-    def pixel_to_world_coordinate(self, pixel: Tuple[float, float]) -> Vector3:
+    def pixel2world(self, pixel: Tuple[float, float]) -> Vector3:
         """
         Convert a pixel coordinate to a world coordinate using the precomputed map.
         """
         x, y = pixel
         return Vector3(*self.world_coordinate_map[y, x])
 
-    def _pixel_to_world_coordinate(
+    def _pixel2world(
         self, pixel: Tuple[float, float]
     ) -> Vector3:
         """
@@ -88,7 +95,7 @@ class CoordinateConverter:
         self.world_coordinate_map = np.empty((self.frame_height, self.frame_width, 3), dtype=np.float32)
         for i in range(self.frame_height):
             for j in range(self.frame_width):
-                world_coord = self._pixel_to_world_coordinate((j, i))
+                world_coord = self._pixel2world((j, i))
                 self.world_coordinate_map[i, j] = [world_coord.x, world_coord.y, world_coord.z]
 
     def _create_world_coordinate_map_fast(self):
@@ -121,7 +128,7 @@ class CoordinateConverter:
         # Create the world_coordinate_map from the intersections
         self.world_coordinate_map = intersections.astype(np.float32)
 
-    def world_coordinate_map_to_colored_depth_image(self, max_depth: float = 100.0, filename="color.png") -> np.ndarray:
+    def compute_depth_map(self, max_depth: float = 100.0, filename="color.png") -> np.ndarray:
         """
         Convert a world coordinate map to a colored depth image.
         
@@ -145,10 +152,25 @@ class CoordinateConverter:
         gray_depth_image = (depth_map_normalized * 255).astype(np.uint8)
 
         # Apply a colormap to the grayscale depth image to create a colored depth image
-        colored_depth_image = cv2.applyColorMap(gray_depth_image, cv2.COLORMAP_JET)
+        depth_map = cv2.applyColorMap(gray_depth_image, cv2.COLORMAP_JET)
 
         # Set the color of infinite depth values to white
-        colored_depth_image[inf_depth_mask] = [128, 128, 128]
+        depth_map[inf_depth_mask] = [128, 128, 128]
 
-        cv2.imwrite(filename, colored_depth_image)
-        return colored_depth_image
+        # cv2.imwrite(filename, depth_map)
+        self.depth_map = depth_map
+
+    def recompute_depth_map(self, max_depth: float = 2.5):
+        """
+        Recalculate the world_coordinate_map and update the depth_map.
+
+        Args:
+            max_depth (float): The maximum depth value to be visualized, used for scaling the depth values.
+        """
+        self.towards_direction = Vector3(*self.towards_direction).normalized()
+        self._create_world_coordinate_map_fast()
+        self.compute_depth_map(max_depth=max_depth)
+
+    def update_depth_map(self):
+        while True:
+            self.recompute_depth_map()

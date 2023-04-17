@@ -36,7 +36,6 @@ class Gyroscope:
     def update_data(self):
         while True:
             self._update_data()
-            time.sleep(0.01)
 
     def _update_data(self):
         t0 = time.time()
@@ -44,7 +43,7 @@ class Gyroscope:
             # Ensure data is valid
             buf = self.serial_port.read(18)
             if buf[:2] != b'\xa5\xa5':
-                if time.time() - t0 > 1:
+                if time.time() - t0 > 3:
                     raise Exception("Gyroscope get data timed out!")
                 time.sleep(0.01)
                 continue

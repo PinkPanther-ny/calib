@@ -2,7 +2,7 @@ import argparse
 import cv2
 import yaml
 from typing import Dict
-from core import Calib, MouseEventHandler, Gyroscope, combine_image
+from core import Calib, CoordinateConverter, MouseEventHandler, Gyroscope, combine_image
 
 
 def load_config(config_path: str) -> Dict:
@@ -24,6 +24,7 @@ def main(config: Dict) -> None:
     camera_position = config["camera_position"]
     towards_direction = config["towards_direction"]
     
+    gyro = None
     try:
         gyro = Gyroscope("COM4")
         towards_direction = gyro.data["towards_direction"]
@@ -32,10 +33,12 @@ def main(config: Dict) -> None:
         print(str(e))
         print(f"Using towards direction from config: {towards_direction}")
     
-    mouse_event_handler = MouseEventHandler(
-        frame_width, frame_height, camera_matrix,
-        camera_position, towards_direction
-    )
+    converter = CoordinateConverter(
+            frame_width, frame_height, 
+            camera_matrix, camera_position, 
+            towards_direction, start_update = gyro is not None
+        )
+    mouse_event_handler = MouseEventHandler(converter)
 
     cap = cv2.VideoCapture(config["camera_index"], cv2.CAP_DSHOW)
     # Set camera resolution
@@ -50,7 +53,9 @@ def main(config: Dict) -> None:
         if not ret:
             break
         mouse_event_handler.display_text_on_frame(frame)
-        cv2.imshow("Camera Frame", combine_image(frame, mouse_event_handler.coordinate_converter.colored_depth_image))
+        if gyro is not None:
+            converter.towards_direction = gyro.data["towards_direction"]
+        cv2.imshow("Camera Frame", combine_image(frame, converter.depth_map))
 
         if cv2.waitKey(1) & 0xFF == ord("q"):
             break
