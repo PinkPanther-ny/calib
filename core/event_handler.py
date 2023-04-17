@@ -23,7 +23,7 @@ class MouseEventHandler:
         Handle mouse events and update the intersection point.
         """
         self._cursor_position = (x, y)
-        intersection = self.converter.pixel2world(
+        intersection = self.converter.pixel_to_world(
             self._cursor_position
         )
 

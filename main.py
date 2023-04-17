@@ -36,7 +36,7 @@ def main(config: Dict) -> None:
     converter = CoordinateConverter(
             frame_width, frame_height, 
             camera_matrix, camera_position, 
-            towards_direction, start_update = gyro is not None
+            towards_direction, auto_update = gyro is not None
         )
     mouse_event_handler = MouseEventHandler(converter)
 

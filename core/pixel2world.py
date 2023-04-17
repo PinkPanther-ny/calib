@@ -14,7 +14,7 @@ class CoordinateConverter:
         camera_matrix: np.ndarray,
         camera_position: List[float],
         towards_direction: List[float],
-        start_update: bool,
+        auto_update: bool,
     ):
         """
         Initialize the CoordinateConverter class.
@@ -27,17 +27,17 @@ class CoordinateConverter:
         self.ground_plane = Plane(Vector3(0, 0, 0), Vector3(0, 1, 0))
         
         t0 = time.time()
-        self._create_world_coordinate_map_fast()
+        self._generate_world_coordinates_map_fast()
         print(f"Coordinate map ({frame_width}, {frame_height}) computed in {time.time() - t0} secs.")
         
-        self.compute_depth_map(max_depth=2.5)
+        self.generate_depth_map(max_depth=2.5)
         
-        if start_update:
-            self.update_thread = Thread(target=self.update_depth_map)
+        if auto_update:
+            self.update_thread = Thread(target=self._auto_update_depth_map)
             self.update_thread.daemon = True
             self.update_thread.start()
 
-    def _calculate_fov(self, degree=True) -> Tuple[float, float]:
+    def _calculate_field_of_view(self, degree=True) -> Tuple[float, float]:
         """
         Calculate the camera's field of view (FOV) in the x and y directions.
         """
@@ -49,21 +49,21 @@ class CoordinateConverter:
         else:
             return fov_x, fov_y
 
-    def pixel2world(self, pixel: Tuple[float, float]) -> Vector3:
+    def pixel_to_world(self, pixel: Tuple[float, float]) -> Vector3:
         """
         Convert a pixel coordinate to a world coordinate using the precomputed map.
         """
         x, y = pixel
-        return Vector3(*self.world_coordinate_map[y, x])
+        return Vector3(*self.world_coordinates_map[y, x])
 
-    def _pixel2world(
+    def _pixel_to_world(
         self, pixel: Tuple[float, float]
     ) -> Vector3:
         """
         Convert a pixel coordinate to a world coordinate.
         """
 
-        fov_x, fov_y = self._calculate_fov(degree=False)
+        fov_x, fov_y = self._calculate_field_of_view(degree=False)
         aspect_ratio = self.frame_width / self.frame_height
 
         # Calculate the camera's coordinate system
@@ -91,19 +91,19 @@ class CoordinateConverter:
         else:
             return intersection
 
-    def _create_world_coordinate_map(self):
-        self.world_coordinate_map = np.empty((self.frame_height, self.frame_width, 3), dtype=np.float32)
+    def _generate_world_coordinates_map(self):
+        self.world_coordinates_map = np.empty((self.frame_height, self.frame_width, 3), dtype=np.float32)
         for i in range(self.frame_height):
             for j in range(self.frame_width):
-                world_coord = self._pixel2world((j, i))
-                self.world_coordinate_map[i, j] = [world_coord.x, world_coord.y, world_coord.z]
+                world_coord = self._pixel_to_world((j, i))
+                self.world_coordinates_map[i, j] = [world_coord.x, world_coord.y, world_coord.z]
 
-    def _create_world_coordinate_map_fast(self):
+    def _generate_world_coordinates_map_fast(self):
         # Create a grid of pixel coordinates
         pixel_x, pixel_y = np.meshgrid(np.arange(self.frame_width), np.arange(self.frame_height))
 
         # Calculate the u and v values for each pixel
-        fov_x, fov_y = self._calculate_fov(degree=False)
+        fov_x, fov_y = self._calculate_field_of_view(degree=False)
         aspect_ratio = self.frame_width / self.frame_height
         pixel_u = (2 * (pixel_x + 0.5) / self.frame_width - 1) * np.tan(fov_x / 2) * aspect_ratio
         pixel_v = (1 - 2 * (pixel_y + 0.5) / self.frame_height) * np.tan(fov_y / 2)
@@ -125,22 +125,21 @@ class CoordinateConverter:
         # Calculate the intersection points of the rays with the ground plane
         intersections = self.ground_plane.intersect_many(self.camera_position, ray_directions)
 
-        # Create the world_coordinate_map from the intersections
-        self.world_coordinate_map = intersections.astype(np.float32)
+        # Create the world_coordinates_map from the intersections
+        self.world_coordinates_map = intersections.astype(np.float32)
 
-    def compute_depth_map(self, max_depth: float = 100.0, filename="color.png") -> np.ndarray:
+    def generate_depth_map(self, max_depth: float = 100.0) -> np.ndarray:
         """
         Convert a world coordinate map to a colored depth image.
         
         Args:
-            world_coordinate_map (np.ndarray): A 3D numpy array containing world coordinates (x, y, z) for each pixel.
             max_depth (float): The maximum depth value to be visualized, used for scaling the depth values.
             
         Returns:
             np.ndarray: A colored depth image.
         """
-        # Extract the depth (z) values from the world_coordinate_map
-        depth_map = self.world_coordinate_map[:, :, 2]
+        # Extract the depth (z) values from the world_coordinates_map
+        depth_map = self.world_coordinates_map[:, :, 2]
 
         # Create a mask for infinite depth values
         inf_depth_mask = np.isinf(depth_map)
@@ -157,20 +156,19 @@ class CoordinateConverter:
         # Set the color of infinite depth values to white
         depth_map[inf_depth_mask] = [128, 128, 128]
 
-        # cv2.imwrite(filename, depth_map)
         self.depth_map = depth_map
 
-    def recompute_depth_map(self, max_depth: float = 2.5):
+    def update_depth_map(self, max_depth: float = 2.5):
         """
-        Recalculate the world_coordinate_map and update the depth_map.
+        Recalculate the world_coordinates_map and update the depth_map.
 
         Args:
             max_depth (float): The maximum depth value to be visualized, used for scaling the depth values.
         """
         self.towards_direction = Vector3(*self.towards_direction).normalized()
-        self._create_world_coordinate_map_fast()
-        self.compute_depth_map(max_depth=max_depth)
+        self._generate_world_coordinates_map_fast()
+        self.generate_depth_map(max_depth=max_depth)
 
-    def update_depth_map(self):
+    def _auto_update_depth_map(self):
         while True:
-            self.recompute_depth_map()
+            self.update_depth_map()
