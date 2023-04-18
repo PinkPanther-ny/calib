@@ -128,15 +128,16 @@ class CoordinateConverter:
         # Create the world_coordinates_map from the intersections
         self.world_coordinates_map = intersections.astype(np.float32)
 
-    def generate_depth_map(self, max_depth: float = 100.0) -> np.ndarray:
+    def generate_depth_map(self, max_depth: float = 100.0, grid_spacing: float = 0.5) -> np.ndarray:
         """
-        Convert a world coordinate map to a colored depth image.
+        Convert a world coordinate map to a colored depth image with a grid.
         
         Args:
             max_depth (float): The maximum depth value to be visualized, used for scaling the depth values.
-            
+            grid_spacing (float): The spacing between grid lines in the world coordinate system.
+                
         Returns:
-            np.ndarray: A colored depth image.
+            np.ndarray: A colored depth image with a grid.
         """
         # Extract the depth (z) values from the world_coordinates_map
         depth_map = self.world_coordinates_map[:, :, 2]
@@ -155,6 +156,16 @@ class CoordinateConverter:
 
         # Set the color of infinite depth values to white
         depth_map[inf_depth_mask] = [128, 128, 128]
+
+        # Draw grid lines
+        x_coords = self.world_coordinates_map[:, :, 0]
+        z_coords = self.world_coordinates_map[:, :, 2]
+        
+        x_on_grid = np.abs(x_coords % grid_spacing) < 1e-2
+        z_on_grid = np.abs(z_coords % grid_spacing) < 1e-2
+        grid_mask = np.logical_or(x_on_grid, z_on_grid)
+        
+        depth_map[grid_mask] = [0, 0, 0]
 
         self.depth_map = depth_map
 
