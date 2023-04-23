@@ -56,47 +56,37 @@ class CoordinateConverter:
         x, y = pixel
         return Vector3(*self.world_coordinates_map[y, x])
 
-    def _pixel_to_world(
-        self, pixel: Tuple[float, float]
-    ) -> Vector3:
-        """
-        Convert a pixel coordinate to a world coordinate.
-        """
-
-        fov_x, fov_y = self._calculate_field_of_view(degree=False)
-        aspect_ratio = self.frame_width / self.frame_height
-
-        # Calculate the camera's coordinate system
-        up = np.array([0, 1, 0])
-        horizontal = np.cross(self.towards_direction, up)
-        vertical = np.cross(horizontal, self.towards_direction)
-
-        # Find the center of the image plane in world coordinates
-        image_plane_center = self.camera_position + self.towards_direction
-
-        pixel_x, pixel_y = pixel
-        # Calculate the position of the pixel in the world coordinate system
-        pixel_u = (2 * (pixel_x + 0.5) / self.frame_width - 1) * np.tan(fov_x / 2) * aspect_ratio
-        pixel_v = (1 - 2 * (pixel_y + 0.5) / self.frame_height) * np.tan(fov_y / 2)
-        pixel_position_in_world = image_plane_center + pixel_u * horizontal + pixel_v * vertical
-
-        # Create the ray direction vector and normalize it
-        ray_direction = pixel_position_in_world - self.camera_position
-
-        ray = Ray(self.camera_position, ray_direction)
-        intersection = self.ground_plane.intersect(ray)
-
-        if intersection is None:
-            return Vector3(float('inf'), float('inf'), float('inf'))
-        else:
-            return intersection
-
     def _generate_world_coordinates_map(self):
         self.world_coordinates_map = np.empty((self.frame_height, self.frame_width, 3), dtype=np.float32)
-        for i in range(self.frame_height):
-            for j in range(self.frame_width):
-                world_coord = self._pixel_to_world((j, i))
-                self.world_coordinates_map[i, j] = [world_coord.x, world_coord.y, world_coord.z]
+        for pixel_y in range(self.frame_height):
+            for pixel_x in range(self.frame_width):
+                fov_x, fov_y = self._calculate_field_of_view(degree=False)
+                aspect_ratio = self.frame_width / self.frame_height
+
+                # Calculate the camera's coordinate system
+                up = np.array([0, 1, 0])
+                horizontal = np.cross(self.towards_direction, up)
+                vertical = np.cross(horizontal, self.towards_direction)
+
+                # Find the center of the image plane in world coordinates
+                image_plane_center = self.camera_position + self.towards_direction
+
+                # Calculate the position of the pixel in the world coordinate system
+                pixel_u = (2 * (pixel_x + 0.5) / self.frame_width - 1) * np.tan(fov_x / 2) * aspect_ratio
+                pixel_v = (1 - 2 * (pixel_y + 0.5) / self.frame_height) * np.tan(fov_y / 2)
+                pixel_position_in_world = image_plane_center + pixel_u * horizontal + pixel_v * vertical
+
+                # Create the ray direction vector and normalize it
+                ray_direction = pixel_position_in_world - self.camera_position
+
+                ray = Ray(self.camera_position, ray_direction)
+                intersection = self.ground_plane.intersect(ray)
+
+                if intersection is None:
+                    world_coord = Vector3(float('inf'), float('inf'), float('inf'))
+                else:
+                    world_coord = intersection
+                self.world_coordinates_map[pixel_y, pixel_x] = [world_coord.x, world_coord.y, world_coord.z]
 
     def _generate_world_coordinates_map_fast(self):
         # Create a grid of pixel coordinates
