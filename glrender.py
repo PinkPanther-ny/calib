@@ -1,10 +1,12 @@
 import argparse
-import yaml
-import pygame
+from typing import List
+
 import numpy as np
+import pygame
+import yaml
 from OpenGL.GL import *
 from OpenGL.GLU import *
-from typing import List
+
 from core import Calib
 from glutil import GLGrid, GLCompass, draw_text
 

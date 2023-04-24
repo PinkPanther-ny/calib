@@ -1,7 +1,8 @@
-import serial
 import time
-import numpy as np
 from threading import Thread
+
+import numpy as np
+import serial
 
 
 class Gyroscope:

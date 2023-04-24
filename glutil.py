@@ -1,7 +1,7 @@
+import numpy as np
+import pygame
 from OpenGL.GL import *
 from OpenGL.GLU import *
-import pygame
-import numpy as np
 
 
 class GLGrid:

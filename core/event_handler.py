@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-from typing import List
+
 from core.pixel2world import CoordinateConverter
 
 

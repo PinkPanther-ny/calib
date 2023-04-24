@@ -1,9 +1,11 @@
-from threading import Thread
-import cv2
 import time
-import numpy as np
-from core.geometry import Plane, Vector3
+from threading import Thread
 from typing import Tuple
+
+import cv2
+import numpy as np
+
+from core.geometry import Plane, Vector3
 
 
 class CoordinateConverter:
