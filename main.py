@@ -52,7 +52,7 @@ def main(config: Dict, device) -> None:
 
     while cv2.getWindowProperty("Camera Frame", cv2.WND_PROP_VISIBLE) >= 1:
         ret, frame = cap.read()
-        frame = calib.undistort(frame, crop=False)
+        frame = calib.undistort(frame)
         if not ret:
             break
         mouse_event_handler.display_text_on_frame(frame)

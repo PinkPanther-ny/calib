@@ -60,7 +60,7 @@ class Calib:
         self.camera_matrix = camera_matrix
         self.dist_coeffs = dist_coeffs
 
-        self.new_camera_matrix, self.roi = cv2.getOptimalNewCameraMatrix(
+        self.new_camera_matrix, _ = cv2.getOptimalNewCameraMatrix(
             self.camera_matrix,
             self.dist_coeffs,
             (self.width, self.height),
@@ -76,6 +76,7 @@ class Calib:
             "height": self.height,
             "camera_matrix": self.camera_matrix.tolist(),
             "dist_coeffs": self.dist_coeffs.tolist(),
+            "new_camera_matrix": self.new_camera_matrix.tolist(),
         }
 
         with open(filename, "w") as f:
@@ -93,25 +94,20 @@ class Calib:
         self.camera_matrix = np.array(calibration_data["camera_matrix"])
         self.dist_coeffs = np.array(calibration_data["dist_coeffs"])
 
-        self.new_camera_matrix, self.roi = cv2.getOptimalNewCameraMatrix(
-            self.camera_matrix,
-            self.dist_coeffs,
-            (self.width, self.height),
-            0
-        )
+        self.new_camera_matrix = np.array(calibration_data["new_camera_matrix"])
 
         return {
             "width": self.width,
             "height": self.height,
             "camera_matrix": self.camera_matrix,
             "dist_coeffs": self.dist_coeffs,
+            "new_camera_matrix": self.new_camera_matrix,
         }
 
     def undistort(
             self,
             image: Union[str, np.ndarray],
             output: Optional[str] = None,
-            crop: bool = False,
     ) -> np.ndarray:
         """
         Undistort an image using the calibration data.
@@ -128,56 +124,10 @@ class Calib:
             self.new_camera_matrix
         )
 
-        if crop:
-            # crop the image
-            x, y, w, h = self.roi
-            image = image[y:y + h, x:x + w]
-
         if output is not None:
             cv2.imwrite(output, image)
 
         return image
-
-    def distort(self, image: Union[str, np.ndarray], output: Optional[str] = None) -> np.ndarray:
-        """
-        Distort an image using the calibration data.
-        """
-        if type(image) == str:
-            image = cv2.imread(image)
-
-        h, w = image.shape[:2]
-
-        # Compute the distortion maps for undistortion
-        map1, map2 = cv2.initUndistortRectifyMap(
-            self.camera_matrix,
-            self.dist_coeffs,
-            None,
-            self.camera_matrix,
-            (w, h),
-            cv2.CV_32FC1,
-        )
-
-        # Undistort the image
-        undistorted_image = cv2.remap(image, map1, map2, cv2.INTER_LINEAR)
-
-        # Compute the distortion maps for distortion using the inverse of the distortion coefficients
-        inv_dist_coeffs = -1 * self.dist_coeffs
-        map1_inv, map2_inv = cv2.initUndistortRectifyMap(
-            self.camera_matrix,
-            inv_dist_coeffs,
-            None,
-            self.camera_matrix,
-            (w, h),
-            cv2.CV_32FC1,
-        )
-
-        # Distort the image
-        distorted_image = cv2.remap(undistorted_image, map1_inv, map2_inv, cv2.INTER_LINEAR)
-
-        if output is not None:
-            cv2.imwrite(output, distorted_image)
-
-        return distorted_image
 
     def __repr__(self) -> str:
         """
@@ -188,25 +138,26 @@ class Calib:
             "height": self.height,
             "camera_matrix": self.camera_matrix.tolist(),
             "dist_coeffs": self.dist_coeffs.tolist(),
+            "new_camera_matrix": self.new_camera_matrix.tolist(),
         }, indent=4)
 
 
 if __name__ == "__main__":
     calib = Calib(image_dir="fixed_8x6/*.jpg", chessboard_size=(7, 12))
     calib.save(filename="configs/calib_fixed_8x6.json")
-    calib.undistort("fixed_8x6/WIN_20230413_16_29_23_Pro.jpg", "calibrated.jpg", crop=False)
+    calib.undistort("fixed_8x6/WIN_20230413_16_29_23_Pro.jpg", "calibrated.jpg")
     calib.load(filename="configs/calib_fixed_8x6.json")
     print(calib)
 
     # calib = Calib(image_dir="fisheye/*.jpg", chessboard_size=(7, 12))
     # calib.save(filename="configs/calib_fish.json")
-    # calib.undistort("fisheye/WIN_20230323_14_10_45_Pro.jpg", "calibrated.jpg", crop=False)
+    # calib.undistort("fisheye/WIN_20230323_14_10_45_Pro.jpg", "calibrated.jpg")
     # calib.load(filename="configs/calib_fish.json")
     # print(calib)
 
     # calib = Calib(image_dir="images/*.jpg", chessboard_size=(7, 12))
     # calib.save(filename="configs/calib_data.json")
-    # calib.undistort("images/WIN_20230317_19_15_37_Pro.jpg", "calibrated.jpg", crop=False)
+    # calib.undistort("images/WIN_20230317_19_15_37_Pro.jpg", "calibrated.jpg")
     # calib.distort("calibrated.jpg", "dis.jpg")
     # calib.load(filename="configs/calib_data.json")
     # print(calib)
