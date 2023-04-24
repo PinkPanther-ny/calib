@@ -17,6 +17,7 @@ class CoordinateConverter:
         """
         Initialize the CoordinateConverter class.
         """
+        self.depth_map = None
         self.camera = camera
         self.frame_width = frame_width
         self.frame_height = frame_height
@@ -55,16 +56,13 @@ class CoordinateConverter:
         # Create the world_coordinates_map from the intersections
         self.world_coordinates_map = intersections.astype(np.float32)
 
-    def generate_depth_map(self, max_depth: float = 100.0, grid_spacing: float = 0.5) -> np.ndarray:
+    def generate_depth_map(self, max_depth: float = 100.0, grid_spacing: float = 0.5) -> None:
         """
         Convert a world coordinate map to a colored depth image with a grid.
         
         Args:
             max_depth (float): The maximum depth value to be visualized, used for scaling the depth values.
             grid_spacing (float): The spacing between grid lines in the world coordinate system.
-                
-        Returns:
-            np.ndarray: A colored depth image with a grid.
         """
         # Extract the depth (z) values from the world_coordinates_map
         depth_map = self.world_coordinates_map[:, :, 2]

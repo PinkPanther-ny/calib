@@ -10,8 +10,8 @@ def load_config(config_path: str) -> Dict:
     Load the configuration from a YAML file.
     """
     with open(config_path, 'r') as file:
-        config = yaml.safe_load(file)
-    return config
+        return yaml.safe_load(file)
+
 
 def main(config: Dict, device) -> None:
     """
@@ -23,7 +23,7 @@ def main(config: Dict, device) -> None:
 
     camera_position = Vector3(*config["camera_position"])
     towards_direction = Vector3(*config["towards_direction"])
-    
+
     gyro = None
     try:
         gyro = Gyroscope(device)
@@ -35,10 +35,10 @@ def main(config: Dict, device) -> None:
 
     camera = Camera(frame_width, frame_height, camera_matrix, camera_position, towards_direction)
     converter = CoordinateConverter(
-            camera,
-            frame_width, frame_height, 
-            auto_update = gyro is not None
-        )
+        camera,
+        frame_width, frame_height,
+        auto_update=gyro is not None
+    )
     mouse_event_handler = MouseEventHandler(converter)
 
     cap = cv2.VideoCapture(config["camera_index"], cv2.CAP_DSHOW)
@@ -68,9 +68,9 @@ def main(config: Dict, device) -> None:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Load configuration from a YAML file.")
-    parser.add_argument('-c', '--config_path', type=str, default="configs/cam_deepblue.yaml", help='Path to the config file')
+    parser.add_argument('-c', '--config_path', type=str, default="configs/cam_deepblue.yaml",
+                        help='Path to the config file')
     parser.add_argument('-d', '--device', type=str, default="COM5", help='Path to gyroscope device')
     args = parser.parse_args()
 
-    config = load_config(args.config_path)
-    main(config, args.device)
+    main(load_config(args.config_path), args.device)

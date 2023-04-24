@@ -31,6 +31,7 @@ class Vector3(np.ndarray):
     def __str__(self) -> str:
         return f"(x={self.x:.2f}, y={self.y:.2f}, z={self.z:.2f})"
 
+
 class Ray:
     def __init__(self, origin: Vector3, direction: Vector3):
         """
@@ -38,6 +39,7 @@ class Ray:
         """
         self.origin = origin
         self.direction = direction.normalized()
+
 
 class Plane:
     def __init__(self, center: Vector3, normal: Vector3):
@@ -68,4 +70,3 @@ class Plane:
         intersections[t <= 0] = [float('inf'), float('inf'), float('inf')]
 
         return intersections
-

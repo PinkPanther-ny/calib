@@ -62,6 +62,7 @@ class GLGrid:
             glVertex3f(self.size * self.spacing, 0.001, i * self.spacing)
         glEnd()
 
+
 class GLCompass:
     def __init__(self, frame_width, frame_height, x_spacing=10, y_loc=20, colored=True):
         self.compass_labels = {
@@ -84,8 +85,7 @@ class GLCompass:
         angle_rad = np.arctan2(-x, z)  # Invert the x-axis angle calculation
         angle_deg = np.degrees(angle_rad)
         compass_angle = (angle_deg + 360) % 360
-        
-        
+
         screen_center_x = self.frame_width // 2
 
         for label, direction_angle in self.compass_labels.items():
@@ -100,8 +100,8 @@ class GLCompass:
             draw_text(label, x, y, self.frame_width, self.frame_height, align_center=True)
 
         angle_text = f"{compass_angle:.1f}°"
-        draw_text(angle_text, screen_center_x, self.frame_height - self.y_loc - 15, self.frame_width, self.frame_height, align_center=True)
-
+        draw_text(angle_text, screen_center_x, self.frame_height - self.y_loc - 15, self.frame_width, self.frame_height,
+                  align_center=True)
 
 
 def create_texture_from_text(text, font_size, color):
@@ -119,20 +119,21 @@ def create_texture_from_text(text, font_size, color):
 
     return texture_id, width, height
 
+
 def draw_text(text, x, y, frame_width, frame_height, align_center=False, font_size=18, font_color=(255, 255, 255)):
     texture_id, width, height = create_texture_from_text(text, font_size, font_color)
     if align_center:
         x = x - width // 2
-    glColor3f(0,0,0)
+    glColor3f(0, 0, 0)
     glMatrixMode(GL_PROJECTION)
     glPushMatrix()
     glLoadIdentity()
     gluOrtho2D(0, frame_width, 0, frame_height)
-    
+
     glMatrixMode(GL_MODELVIEW)
     glPushMatrix()
     glLoadIdentity()
-    
+
     glEnable(GL_BLEND)
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
     glEnable(GL_TEXTURE_2D)

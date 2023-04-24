@@ -7,10 +7,10 @@ from typing import Optional, Tuple, Union
 
 class Calib:
     def __init__(
-        self,
-        image_dir: str = "./images/*.jpg",
-        chessboard_size: Tuple[int, int] = (8, 12),
-        filename: Optional[str] = None,
+            self,
+            image_dir: str = "./images/*.jpg",
+            chessboard_size: Tuple[int, int] = (8, 12),
+            filename: Optional[str] = None,
     ):
         """
         Initialize the Calib class, either by loading existing calibration data or by calibrating the camera.
@@ -32,8 +32,8 @@ class Calib:
         calibration_images = glob.glob(image_dir)  # Replace with your images path
 
         first_image = True
-        for fname in calibration_images:
-            img = cv2.imread(fname)
+        for filename in calibration_images:
+            img = cv2.imread(filename)
             gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
             if first_image:
@@ -48,19 +48,21 @@ class Calib:
             # If found, add object points and image points (after refining them)
             if ret:
                 objpoints.append(objp)
-                corners2 = cv2.cornerSubPix(gray, corners, (11, 11), (-1, -1), (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001))
+                corners2 = cv2.cornerSubPix(gray, corners, (11, 11), (-1, -1),
+                                            (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001))
                 imgpoints.append(corners2)
 
         # Calibrate the camera
-        ret, camera_matrix, dist_coeffs, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, gray.shape[::-1], None, None)
+        ret, camera_matrix, dist_coeffs, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, gray.shape[::-1],
+                                                                            None, None)
 
         self.camera_matrix = camera_matrix
         self.dist_coeffs = dist_coeffs
-        
+
         self.new_camera_matrix, self.roi = cv2.getOptimalNewCameraMatrix(
-            self.camera_matrix, 
-            self.dist_coeffs, 
-            (self.width, self.height), 
+            self.camera_matrix,
+            self.dist_coeffs,
+            (self.width, self.height),
             0
         )
 
@@ -91,9 +93,9 @@ class Calib:
         self.dist_coeffs = np.array(calibration_data["dist_coeffs"])
 
         self.new_camera_matrix, self.roi = cv2.getOptimalNewCameraMatrix(
-            self.camera_matrix, 
-            self.dist_coeffs, 
-            (self.width, self.height), 
+            self.camera_matrix,
+            self.dist_coeffs,
+            (self.width, self.height),
             0
         )
 
@@ -105,30 +107,30 @@ class Calib:
         }
 
     def undistort(
-        self,
-        image: Union[str, np.ndarray],
-        output: Optional[str] = None,
-        crop: bool = False,
+            self,
+            image: Union[str, np.ndarray],
+            output: Optional[str] = None,
+            crop: bool = False,
     ) -> np.ndarray:
         """
         Undistort an image using the calibration data.
         """
-        if type(image)==str:
+        if type(image) == str:
             image = cv2.imread(image)
-            
+
         # undistort
         image = cv2.undistort(
-            image, 
-            self.camera_matrix, 
-            self.dist_coeffs, 
-            None, 
+            image,
+            self.camera_matrix,
+            self.dist_coeffs,
+            None,
             self.new_camera_matrix
         )
 
         if crop:
             # crop the image
             x, y, w, h = self.roi
-            image = image[y:y+h, x:x+w]
+            image = image[y:y + h, x:x + w]
 
         if output is not None:
             cv2.imwrite(output, image)
@@ -189,13 +191,12 @@ class Calib:
 
 
 if __name__ == "__main__":
-    
     calib = Calib(image_dir="fixed_8x6/*.jpg", chessboard_size=(7, 12))
     calib.save(filename="configs/calib_fixed_8x6.json")
     calib.undistort("fixed_8x6/WIN_20230413_16_29_23_Pro.jpg", "calibrated.jpg", crop=False)
     calib.load(filename="configs/calib_fixed_8x6.json")
     print(calib)
-    
+
     # calib = Calib(image_dir="fisheye/*.jpg", chessboard_size=(7, 12))
     # calib.save(filename="configs/calib_fish.json")
     # calib.undistort("fisheye/WIN_20230323_14_10_45_Pro.jpg", "calibrated.jpg", crop=False)

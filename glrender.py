@@ -8,15 +8,16 @@ from typing import List
 from core import Calib
 from glutil import GLGrid, GLCompass, draw_text
 
+
 class Renderer:
     def __init__(
-        self,
-        frame_width: int,
-        frame_height: int,
-        camera_matrix: np.ndarray,
-        dist_coeffs: np.ndarray,
-        camera_position: List[float],
-        towards_direction: List[float],
+            self,
+            frame_width: int,
+            frame_height: int,
+            camera_matrix: np.ndarray,
+            dist_coeffs: np.ndarray,
+            camera_position: List[float],
+            towards_direction: List[float],
     ):
         self.frame_width = frame_width
         self.frame_height = frame_height
@@ -39,13 +40,13 @@ class Renderer:
 
         # Enable multisampling in the OpenGL context
         glEnable(GL_MULTISAMPLE)
-        
+
         # Set up OpenGL
         glClearColor(0.5, 0.5, 0.5, 1)
         glMatrixMode(GL_PROJECTION)
         gluPerspective(45, (self.frame_width / self.frame_height), 0.1, 100.0)
         glEnable(GL_DEPTH_TEST)
-        
+
         # Set up the camera
         glMatrixMode(GL_MODELVIEW)
         glLoadIdentity()
@@ -63,12 +64,13 @@ class Renderer:
         glMatrixMode(GL_MODELVIEW)
         glLoadIdentity()
         gluLookAt(*self.camera_position, *camera_target, 0, 1, 0)
-        
+
         self.grid.draw(colored=True)
         self.compass.draw(self.towards_direction)
         draw_text(f"Camera Position: {np.round(self.camera_position, 2)}", 10, 30, self.frame_width, self.frame_height)
-        draw_text(f"Towards Direction: {np.round(self.towards_direction, 2)}", 10, 10, self.frame_width, self.frame_height)
-    
+        draw_text(f"Towards Direction: {np.round(self.towards_direction, 2)}", 10, 10, self.frame_width,
+                  self.frame_height)
+
     def run(self):
         clock = pygame.time.Clock()
 
@@ -81,7 +83,7 @@ class Renderer:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
-                                    # Mouse scroll event
+                # Mouse scroll event
                 if event.type == pygame.MOUSEBUTTONDOWN or event.type == pygame.MOUSEBUTTONUP:
                     if event.button == 4:  # Scroll up
                         self.camera_position[1] += lifting_speed
@@ -93,7 +95,7 @@ class Renderer:
             if keys[pygame.K_ESCAPE]:
                 running = False
                 continue
-            
+
             # Calculate movement vector
             move_vector = [0.0, 0.0, 0.0]
             if keys[pygame.K_w]:
@@ -159,26 +161,28 @@ def load_config(config_path: str):
         config = yaml.safe_load(file)
     return config
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Load configuration from a YAML file.")
-    parser.add_argument('-c', '--config_path', type=str, default="configs/cam_deepblue.yaml", help='Path to the config file')
+    parser.add_argument('-c', '--config_path', type=str, default="configs/cam_deepblue.yaml",
+                        help='Path to the config file')
     args = parser.parse_args()
 
     config = load_config(args.config_path)
-    
+
     calib = Calib(filename=config["calib_filename"])
     camera_matrix, dist_coeffs = calib.camera_matrix, calib.dist_coeffs
     frame_width, frame_height = calib.width, calib.height
 
     camera_position = config["camera_position"]
     towards_direction = config["towards_direction"]
-    
+
     renderer = Renderer(
-        frame_width, frame_height, 
+        frame_width, frame_height,
         camera_matrix, dist_coeffs,
         camera_position, towards_direction
     )
-    
+
     renderer.run()
     # grid_image = renderer.image
     # cv2.imwrite("im.png", grid_image)

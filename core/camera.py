@@ -15,24 +15,29 @@ def load_config(config_path: str) -> Dict:
         config = yaml.safe_load(file)
     return config
 
+
 def main(config: Dict) -> None:
     """
     Run the main program loop with the given configuration.
     """
     calib = Calib(filename=config["calib_filename"])
-    cam = Camera(calib.width, calib.height, calib.new_camera_matrix, config["camera_position"], config["towards_direction"])
+    cam = Camera(calib.width, calib.height, calib.new_camera_matrix, config["camera_position"],
+                 config["towards_direction"])
     # Plot the virtual screen
     cam.plot_virtual_screen()
 
+
 WORLD_UP = Vector3(0, 1, 0)
+
+
 class Camera:
     def __init__(
-        self,
-        frame_width: int,
-        frame_height: int,
-        camera_matrix: np.ndarray,
-        camera_position: Vector3,
-        towards_direction: Vector3,
+            self,
+            frame_width: int,
+            frame_height: int,
+            camera_matrix: np.ndarray,
+            camera_position: Vector3,
+            towards_direction: Vector3,
     ):
         """
         Initialize the Camera class.
@@ -52,17 +57,17 @@ class Camera:
         # Calculate the horizontal and vertical step size for each pixel
         self.h_step = self.screen_width / self.frame_width
         self.v_step = self.screen_height / self.frame_height
-        
+
         # Calculate camera basis and screen's center position in world coordinates
         self.camera_forward = towards_direction.normalized()
         self.camera_right = Vector3(*np.cross(self.camera_forward, WORLD_UP)).normalized()
         self.camera_up = Vector3(*np.cross(self.camera_right, self.camera_forward)).normalized()
         self.screen_center = self.camera_position + self.camera_forward
-    
+
     @property
     def look_at(self):
         return self.camera_forward
-    
+
     @look_at.setter
     def look_at(self, towards_direction: Vector3):
         # Calculate camera basis and screen's center position in world coordinates
@@ -113,9 +118,9 @@ class Camera:
         y_offsets = (y_pixel_coords + 0.5) * self.v_step - self.screen_height / 2
 
         pixel_positions = (
-            self.screen_center
-            + (self.camera_right * x_offsets[..., np.newaxis])
-            - (self.camera_up * y_offsets[..., np.newaxis])
+                self.screen_center
+                + (self.camera_right * x_offsets[..., np.newaxis])
+                - (self.camera_up * y_offsets[..., np.newaxis])
         )
         ray_directions = pixel_positions - self.camera_position
         return self.camera_position, ray_directions
@@ -141,9 +146,11 @@ class Camera:
         ax.view_init(elev=90, azim=0, roll=90)
         plt.show()
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Load configuration from a YAML file.")
-    parser.add_argument('-c', '--config_path', type=str, default="configs/cam_deepblue.yaml", help='Path to the config file')
+    parser.add_argument('-c', '--config_path', type=str, default="configs/cam_deepblue.yaml",
+                        help='Path to the config file')
     args = parser.parse_args()
 
     config = load_config(args.config_path)
